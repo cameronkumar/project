@@ -104,7 +104,6 @@ void vis::wheelEvent(QWheelEvent *event) {
 	else // wheel scrolled backward
 		glScalef(pow(0.9, -deg), pow(0.9, -deg), pow(0.9, -deg));
 	
-	
 	event->accept(); // accepts the event
 	updateGL(); // redraw to screen
 }
@@ -115,4 +114,17 @@ void vis::wheelEvent(QWheelEvent *event) {
    
    @param event information about the key pressed
 */
-void vis::keyPressEvent(QKeyEvent *event) {}
+void vis::keyPressEvent(QKeyEvent *event) {
+	
+	int key = event->key(); // get the integer value of key pressed
+	
+	glMatrixMode(GL_MODELVIEW); // change to modelview matrix
+	
+	if(key == Qt::Key_Equal) // "+" button pressed
+		glScalef(1.1f, 1.1f, 1.1f); // zoom in 
+	else if(key == Qt::Key_Minus) // "-" button pressed
+		glScalef(0.9f, 0.9f, 0.9f); // zoom out
+		
+	event->accept(); // accepts the event
+	updateGL(); // redraw to screen
+}

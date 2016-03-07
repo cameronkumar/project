@@ -9,7 +9,6 @@
 #include "vis.h"
 #include <QMouseEvent>
 #include <QKeyEvent>
-#include <GL/glut.h>
 
 /**
    class constructor
@@ -23,7 +22,7 @@ vis::vis(QWidget *parent): QGLWidget(parent) {} // simple constuctor
 */
 void vis::initializeGL() {
 
-	glClearColor(0.0,0.0,0.0,0.0); // white background
+	glClearColor(0.0,0.0,0.0,0.0); // black background
 	glOrtho(-1.0,1.0,-1.0,1.0,-1.0,1.0); // sets the clipping plane
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
@@ -77,8 +76,8 @@ void vis::paintGL() {
 		glVertex3f(-0.5f, -0.5f, 0.0f);
 		glVertex3f(0.5f, -0.5f, 0.0f);
 	glEnd();
-	// draw frame and switch the back and front buffer
-	glutSwapBuffers();
+	// draw frame and render to screen
+	glFinish();
 
 }
 

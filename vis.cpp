@@ -21,7 +21,7 @@ vis::vis(QWidget *parent): QGLWidget(parent) {} // simple constuctor
 /**
    initialises environment for OpenGL rendering when instance called
 */
-vis::initializeGL() {
+void vis::initializeGL() {
 
 	glClearColor(0.0,0.0,0.0,0.0); // white background
 	glOrtho(-1.0,1.0,-1.0,1.0,-1.0,1.0); // sets the clipping plane
@@ -49,7 +49,7 @@ vis::initializeGL() {
    @param w the new width of the widget
    @param h the new height of the widget
 */
-vis::resizeGL(int w, int h) {
+void vis::resizeGL(int w, int h) {
 
 	// resize the viewport to that of the new widget dimensions
 	glViewport(0,0,w,h);
@@ -59,10 +59,41 @@ vis::resizeGL(int w, int h) {
 /**
    draw a new frame
 */ 
-vis::paintGL() {
+void vis::paintGL() {
 
 	// clearing screen first
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+	// initialise default surface properties for all objects, red colour
+	GLfloat fRed[4] = {1.0, 0.0, 0.0, 1.0};
+	GLfloat fWhite[4] = {1.0, 1.0, 1.0, 1.0};
+	glMaterialfv(GL_FRONT, GL_AMBIENT, fRed); 
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, fRed); 
+	glMaterialfv(GL_FRONT, GL_SPECULAR, fWhite); 
+	glMaterialf(GL_FRONT, GL_SHININESS, 128.0);
+	// temporarily drawing a primitive before spheres implemented 
+	glBegin(GL_QUADS);
+		glVertex3f(0.5f, 0.5f, 0.0f);
+		glVertex3f(-0.5f, 0.5f, 0.0f);
+		glVertex3f(-0.5f, -0.5f, 0.0f);
+		glVertex3f(0.5f, -0.5f, 0.0f);
+	glEnd();
+	// draw frame and switch the back and front buffer
+	glutSwapBuffers();
 
 }
+
+/**
+   interaction handling for when a mouse button is pressed, used for 
+   camera movement
+   
+   @param event information about the mouse button click
+*/
+void vis::mousePressEvent(QMouseEvent *event) {}
+
+/**
+   interaction handling for when a button on the keyboard is pressed,  
+   used for camera zooming
+   
+   @param event information about the key pressed
+*/
+void vis::keyPressEvent(QKeyEvent *event) {}

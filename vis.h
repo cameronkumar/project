@@ -48,12 +48,12 @@ class vis: public QGLWidget {
 	void paintGL();
 	
 	/**
-	   interaction handling for when a mouse button is pressed, used for 
-	   camera movement
+	   interaction handling for the mouses's scroll wheel, used for 
+	   camera zoom
 	   
 	   @param event information about the mouse button click
 	*/
-	void mousePressEvent(QMouseEvent *event);
+	void wheelEvent(QWheelEvent *event);
 	
 	/**
 	   interaction handling for when a button on the keyboard is pressed,  

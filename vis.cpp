@@ -8,7 +8,11 @@
 
 #include "vis.h"
 #include <QMouseEvent>
+#include <QWheelEvent>
 #include <QKeyEvent>
+#include <cmath> // for power & other math funcs
+
+#include <QDebug> // USED FOR DEBUGGING
 
 /**
    class constructor
@@ -82,12 +86,28 @@ void vis::paintGL() {
 }
 
 /**
-   interaction handling for when a mouse button is pressed, used for 
-   camera movement
+   interaction handling for the mouses's scroll wheel, used for 
+   camera zoom
    
    @param event information about the mouse button click
 */
-void vis::mousePressEvent(QMouseEvent *event) {}
+void vis::wheelEvent(QWheelEvent *event) {
+
+	// deg +120 for one roll forward, -120 for one roll back, read this here
+	float deg = (float)event->delta();
+	deg = deg/120.0; // deg now number of scrolls in + or - dir'n
+	
+	glMatrixMode(GL_MODELVIEW); // change to modelview matrix
+
+	if(deg > 0.0) // wheel scrolled forward
+		glScalef(pow(1.1, deg), pow(1.1, deg), pow(1.1, deg)); 
+	else // wheel scrolled backward
+		glScalef(pow(0.9, -deg), pow(0.9, -deg), pow(0.9, -deg));
+	
+	
+	event->accept(); // accepts the event
+	updateGL(); // redraw to screen
+}
 
 /**
    interaction handling for when a button on the keyboard is pressed,  

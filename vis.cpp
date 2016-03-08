@@ -14,12 +14,52 @@
 
 #include <QDebug> // USED FOR DEBUGGING
 
+// const defining number of points in one circle of a sphere
+#define CIRCLE_POINTS 100; 
+
 /**
    class constructor
    
    @param parent parent class, inherit from there 
 */
 vis::vis(QWidget *parent): QGLWidget(parent) {} // simple constuctor
+
+/**
+   creates the points of a sphere object, centre at origin, radius 1
+   
+   @param nPoints number of points per circle in the sphere
+   @return vector of double triplets defining the point coords in 3d 
+*/
+vector<double> vis::makeSpherePoints(int nPoints) {
+	
+	vector<double> spherePoints; // temp vector for points
+	
+	// loops to create the sphere points as circles
+	for(int i = 0; i < nPoints; i++) {
+		
+		// calculations for latitude location of circle of points
+		float phi = (-(M_PI) / 2.0) + (((float)i / (float)nPoints) * M_PI);
+		float cosPhi = cos(phi); // used for calculation
+		float sinPhi = sin(phi); // used for calculation
+		
+		for(int j = 0; j < nPoints; j++) {
+			
+			// calculate longtitude value of each point in circle
+			float theta = -(M_PI) + (((float)j / (float)nPoints) * 2.0 * M_PI);
+			float cosTheta = cos(theta); // used for calculation
+			float sinTheta = sin(theta); // used for calculation
+			
+			// now to add x, y, and z coords to vector
+			spherePoints.pushback(radius * cosPhi * cosTheta);
+			spherePoints.pushback(radius * cosPhi * sinTheta);
+			spherePoints.pushback(radius * sinPhi);
+			
+		}
+	}
+	
+	return spherePoints;
+	
+}
 
 /**
    initialises environment for OpenGL rendering when instance called

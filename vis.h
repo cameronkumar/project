@@ -7,6 +7,7 @@
 */
 
 #include <QGLWidget> // allows us to define a Qt OpenGL widget
+#include <vector>
 
 // simplified calling functions from the std class
 using namespace std;
@@ -26,6 +27,14 @@ class vis: public QGLWidget {
 	   @param parent parent class, inherit from there 
 	*/
 	vis(QWidget *parent);
+	
+	/**
+	   creates the points of a sphere object, centre at origin, radius 1
+	   
+	   @param nPoints number of points per circle in the sphere
+	   @return vector of double triplets defining the point coords in 3d 
+	*/
+	vector<double> makeSpherePoints(int nPoints);
 
 	protected:
 	

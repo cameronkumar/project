@@ -16,6 +16,13 @@ using namespace std;
 #ifndef __VIS_H__
 #define __VIS_H__
 
+// define a struct to hold triples of doubles for use as coordinate points
+struct Point {
+	
+	double x, y, z;	
+	
+}
+
 // defining our visualisation class as subclass of QGLWidget
 class vis: public QGLWidget {
 
@@ -34,7 +41,20 @@ class vis: public QGLWidget {
 	   @param nPoints number of points per circle in the sphere
 	   @return vector of double triplets defining the point coords in 3d 
 	*/
-	vector<double> makeSpherePoints(int nPoints);
+	vector<Point> makeSpherePoints(int nPoints);
+	
+	/**
+	   draws a sphere with specified centre and radius
+	   
+	   @param centre coordinate point of centre location
+	   @param radius radius of sphere 
+	*/
+	void drawSphere(Point centre, double radius);
+	
+	private:
+	
+	// holds the coordinate points for a standard sphere
+	vector<Point> spherePoints; 
 
 	protected:
 	

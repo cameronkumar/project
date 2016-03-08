@@ -28,11 +28,11 @@ vis::vis(QWidget *parent): QGLWidget(parent) {} // simple constuctor
    creates the points of a sphere object, centre at origin, radius 1
    
    @param nPoints number of points per circle in the sphere
-   @return vector of double triplets defining the point coords in 3d 
+   @return vector of Point structure defining the point coords in 3d 
 */
-vector<double> vis::makeSpherePoints(int nPoints) {
+vector<Point> vis::makeSpherePoints(int nPoints) {
 	
-	vector<double> spherePoints; // temp vector for points
+	vector<Point> spherePoints; // temp vector for points
 	
 	// loops to create the sphere points as circles
 	for(int i = 0; i < nPoints; i++) {
@@ -44,16 +44,18 @@ vector<double> vis::makeSpherePoints(int nPoints) {
 		
 		for(int j = 0; j < nPoints; j++) {
 			
+			Point p; // temp point
+			
 			// calculate longtitude value of each point in circle
 			float theta = -(M_PI) + (((float)j / (float)nPoints) * 2.0 * M_PI);
 			float cosTheta = cos(theta); // used for calculation
 			float sinTheta = sin(theta); // used for calculation
 			
-			// now to add x, y, and z coords to vector
-			spherePoints.pushback(radius * cosPhi * cosTheta);
-			spherePoints.pushback(radius * cosPhi * sinTheta);
-			spherePoints.pushback(radius * sinPhi);
-			
+			// now to add coord to vector
+			p.x =  radius * cosPhi * cosTheta;
+			p.y = radius * cosPhi * sinTheta;
+			p.z = radius * sinPhi;
+			spherePoints.pushback(p); 
 		}
 	}
 	
@@ -62,10 +64,59 @@ vector<double> vis::makeSpherePoints(int nPoints) {
 }
 
 /**
+   draws a sphere with specified centre and radius
+   
+   @param centre coordinate point of centre location
+   @param radius radius of sphere 
+*/
+void vis::drawSphere(Point centre, double radius){
+	
+	// draw the strips of our sphere 
+	glBegin(GL_QUAD_STRIP);
+
+	// create CIRCLE_POINTS-1 quad primitive latitude strips
+	for(int i = 0; i < CIRCLE_POINTS - 1; i++)  {
+		
+		/* creates quads between one sphere and sphere above has to include
+		the first point in sphere at start and at end hence why the for loop
+		does CIRCLE_POINTS+1 iterations */
+		for(int j = 0; j < CIRCLE_POINTS + 1; j++)  {
+		
+			glVertex3d(spherePoints.at((i * CIRCLE_POINTS) + (j % CIRCLE_POINTS)));
+			glVertex3d(spherePoints.at(((i+1) * CIRCLE_POINTS) + (j % CIRCLE_POINTS)));
+			
+		}
+		
+	}
+				
+	glEnd();
+	
+	// fills the hole at the bottom of the sphere
+	glBegin(GL_POLYGON);
+	
+	for(int i = 0; i < CIRCLE_POINTS; i++)
+		glVertex3d(spherePoints.at(i));
+		
+	glEnd();
+	
+	// fills the hole at the top of the sphere
+	glBegin(GL_POLYGON);
+	
+	for(int i = 0; i < CIRCLE_POINTS; i++)
+		glVertex3d(spherePoints.at((CIRCLE_POINTS * (CIRCLE_POINTS - 1) + i));
+		
+	glEnd();
+	
+}
+
+
+/**
    initialises environment for OpenGL rendering when instance called
 */
 void vis::initializeGL() {
 
+	// initialise sphere points
+	spherePoints = makeSpherePoints(CIRCLE_POINTS);
 	glClearColor(0.0,0.0,0.0,0.0); // black background
 	glOrtho(-1.0,1.0,-1.0,1.0,-1.0,1.0); // sets the clipping plane
 	
@@ -100,7 +151,7 @@ void vis::resizeGL(int w, int h) {
 }
 
 /**
-   draw a new frame
+   draws a new frame
 */ 
 void vis::paintGL() {
 
@@ -113,13 +164,11 @@ void vis::paintGL() {
 	glMaterialfv(GL_FRONT, GL_DIFFUSE, fRed); 
 	glMaterialfv(GL_FRONT, GL_SPECULAR, fWhite); 
 	glMaterialf(GL_FRONT, GL_SHININESS, 128.0);
-	// temporarily drawing a primitive before spheres implemented 
-	glBegin(GL_QUADS);
-		glVertex3f(0.5f, 0.5f, 0.0f);
-		glVertex3f(-0.5f, 0.5f, 0.0f);
-		glVertex3f(-0.5f, -0.5f, 0.0f);
-		glVertex3f(0.5f, -0.5f, 0.0f);
-	glEnd();
+	
+	Point p = {0.0, 0.0, 0.0};
+	
+	drawSphere(p, 1.0);
+	
 	// draw frame and render to screen
 	glFinish();
 

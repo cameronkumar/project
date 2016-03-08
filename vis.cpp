@@ -15,7 +15,7 @@
 #include <QDebug> // USED FOR DEBUGGING
 
 // const defining number of points in one circle of a sphere
-#define CIRCLE_POINTS 100; 
+#define CIRCLE_POINTS 100 
 
 /**
    class constructor
@@ -36,26 +36,21 @@ vector<Point> vis::makeSpherePoints(int nPoints) {
 	
 	// loops to create the sphere points as circles
 	for(int i = 0; i < nPoints; i++) {
-		
 		// calculations for latitude location of circle of points
 		float phi = (-(M_PI) / 2.0) + (((float)i / (float)nPoints) * M_PI);
 		float cosPhi = cos(phi); // used for calculation
-		float sinPhi = sin(phi); // used for calculation
-		
+		float sinPhi = sin(phi); // used for calculation	
 		for(int j = 0; j < nPoints; j++) {
-			
 			Point p; // temp point
-			
 			// calculate longtitude value of each point in circle
 			float theta = -(M_PI) + (((float)j / (float)nPoints) * 2.0 * M_PI);
 			float cosTheta = cos(theta); // used for calculation
 			float sinTheta = sin(theta); // used for calculation
-			
 			// now to add coord to vector
-			p.x =  radius * cosPhi * cosTheta;
-			p.y = radius * cosPhi * sinTheta;
-			p.z = radius * sinPhi;
-			spherePoints.pushback(p); 
+			p.x = cosPhi * cosTheta;
+			p.y = cosPhi * sinTheta;
+			p.z = sinPhi;
+			spherePoints.push_back(p); 
 		}
 	}
 	
@@ -71,41 +66,46 @@ vector<Point> vis::makeSpherePoints(int nPoints) {
 */
 void vis::drawSphere(Point centre, double radius){
 	
+	// load modelview for translation and scaling
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity(); // reset the matrix
+	glScalef(radius, radius, radius);
+	glTranslatef(centre.x, centre.y, centre.z);	
+			
 	// draw the strips of our sphere 
 	glBegin(GL_QUAD_STRIP);
-
 	// create CIRCLE_POINTS-1 quad primitive latitude strips
-	for(int i = 0; i < CIRCLE_POINTS - 1; i++)  {
-		
+	for(int i = 0; i < (CIRCLE_POINTS - 1); i++)  {
 		/* creates quads between one sphere and sphere above has to include
 		the first point in sphere at start and at end hence why the for loop
 		does CIRCLE_POINTS+1 iterations */
-		for(int j = 0; j < CIRCLE_POINTS + 1; j++)  {
-		
-			glVertex3d(spherePoints.at((i * CIRCLE_POINTS) + (j % CIRCLE_POINTS)));
-			glVertex3d(spherePoints.at(((i+1) * CIRCLE_POINTS) + (j % CIRCLE_POINTS)));
-			
+		for(int j = 0; j < (CIRCLE_POINTS + 1); j++)  {
+			// get points
+			Point lower = spherePoints.at((i * CIRCLE_POINTS) + (j % CIRCLE_POINTS));
+			Point upper = spherePoints.at(((i+1) * CIRCLE_POINTS) + (j % CIRCLE_POINTS));
+			// render vertices
+			glVertex3d(lower.x, lower.y, lower.z);
+			glVertex3d(upper.x, upper.y, upper.z);
 		}
-		
-	}
-				
+	}			
 	glEnd();
 	
 	// fills the hole at the bottom of the sphere
 	glBegin(GL_POLYGON);
-	
-	for(int i = 0; i < CIRCLE_POINTS; i++)
-		glVertex3d(spherePoints.at(i));
-		
+	for(int i = 0; i < CIRCLE_POINTS; i++) {
+		Point p = spherePoints.at(i); // get point
+		glVertex3d(p.x, p.y, p.z); // render vertex
+	}
 	glEnd();
 	
 	// fills the hole at the top of the sphere
 	glBegin(GL_POLYGON);
-	
-	for(int i = 0; i < CIRCLE_POINTS; i++)
-		glVertex3d(spherePoints.at((CIRCLE_POINTS * (CIRCLE_POINTS - 1) + i));
-		
+	for(int i = 0; i < CIRCLE_POINTS; i++){
+		Point p = spherePoints.at(CIRCLE_POINTS * (CIRCLE_POINTS - 1) + i); // get point
+		glVertex3d(p.x, p.y, p.z); // render vertex
+	}
 	glEnd();
+	
 	
 }
 
@@ -118,7 +118,7 @@ void vis::initializeGL() {
 	// initialise sphere points
 	spherePoints = makeSpherePoints(CIRCLE_POINTS);
 	glClearColor(0.0,0.0,0.0,0.0); // black background
-	glOrtho(-1.0,1.0,-1.0,1.0,-1.0,1.0); // sets the clipping plane
+	glOrtho(-2.0,2.0,-1.0,1.0,-1.0,1.0); // sets the clipping plane
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
@@ -166,9 +166,7 @@ void vis::paintGL() {
 	glMaterialf(GL_FRONT, GL_SHININESS, 128.0);
 	
 	Point p = {0.0, 0.0, 0.0};
-	
 	drawSphere(p, 1.0);
-	
 	// draw frame and render to screen
 	glFinish();
 
@@ -187,7 +185,6 @@ void vis::wheelEvent(QWheelEvent *event) {
 	deg = deg/120.0; // deg now number of scrolls in + or - dir'n
 	
 	glMatrixMode(GL_MODELVIEW); // change to modelview matrix
-
 	if(deg > 0.0) // wheel scrolled forward
 		glScalef(pow(1.1, deg), pow(1.1, deg), pow(1.1, deg)); 
 	else // wheel scrolled backward
@@ -208,7 +205,6 @@ void vis::keyPressEvent(QKeyEvent *event) {
 	int key = event->key(); // get the integer value of key pressed
 	
 	glMatrixMode(GL_MODELVIEW); // change to modelview matrix
-	
 	if(key == Qt::Key_Equal) // "+" button pressed
 		glScalef(1.1f, 1.1f, 1.1f); // zoom in 
 	else if(key == Qt::Key_Minus) // "-" button pressed

@@ -16,12 +16,12 @@ using namespace std;
 #ifndef __VIS_H__
 #define __VIS_H__
 
-// define a struct to hold triples of doubles for use as coordinate points
+// defines a struct to hold triples of doubles for use as coordinate points
 struct Point {
 	
 	double x, y, z;	
 	
-}
+};
 
 // defining our visualisation class as subclass of QGLWidget
 class vis: public QGLWidget {

@@ -136,7 +136,15 @@ void vis::setData(char* objData) {
 		
 		dataFile.close();
 		
-	
+		// sometimes when a double is missed from the file incorrect spheres are drawn, this handles that error
+		if((int)objRadius.size < i) {
+			cout << "ERROR: centre and radius not specified for all objects!\n";
+		}
+		
+		// check that file wasn't empty
+		if((int)objRadius.size() < 1) {
+			cout << "ERROR: no objects specified in file! \n";
+		}
 		
 	} else { // invalid file specified
 		cout << "ERROR: file specified is invalid!\n";

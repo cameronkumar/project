@@ -105,8 +105,7 @@ void vis::drawSphere(Point centre, double radius){
 		glVertex3d(p.x, p.y, p.z); // render vertex
 	}
 	glEnd();
-	
-	
+
 }
 
 
@@ -118,6 +117,8 @@ void vis::initializeGL() {
 	// initialise sphere points
 	spherePoints = makeSpherePoints(CIRCLE_POINTS);
 	glClearColor(0.0,0.0,0.0,0.0); // black background
+	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
+	glLoadIdentity();
 	glOrtho(-2.0,2.0,-1.0,1.0,-1.0,1.0); // sets the clipping plane
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
@@ -165,8 +166,12 @@ void vis::paintGL() {
 	glMaterialfv(GL_FRONT, GL_SPECULAR, fWhite); 
 	glMaterialf(GL_FRONT, GL_SHININESS, 128.0);
 	
-	Point p = {0.0, 0.0, 0.0};
-	drawSphere(p, 1.0);
+	Point p = {1.0, 0.5, 0.0};
+	drawSphere(p, 0.3);
+	
+	Point q = {4.0, 2.0, -1.1};
+	drawSphere(q, 1.0);
+	
 	// draw frame and render to screen
 	glFinish();
 
@@ -184,7 +189,7 @@ void vis::wheelEvent(QWheelEvent *event) {
 	float deg = (float)event->delta();
 	deg = deg/120.0; // deg now number of scrolls in + or - dir'n
 	
-	glMatrixMode(GL_MODELVIEW); // change to modelview matrix
+	glMatrixMode(GL_PROJECTION); // change to modelview matrix
 	if(deg > 0.0) // wheel scrolled forward
 		glScalef(pow(1.1, deg), pow(1.1, deg), pow(1.1, deg)); 
 	else // wheel scrolled backward
@@ -204,7 +209,7 @@ void vis::keyPressEvent(QKeyEvent *event) {
 	
 	int key = event->key(); // get the integer value of key pressed
 	
-	glMatrixMode(GL_MODELVIEW); // change to modelview matrix
+	glMatrixMode(GL_PROJECTION); // change to modelview matrix
 	if(key == Qt::Key_Equal) // "+" button pressed
 		glScalef(1.1f, 1.1f, 1.1f); // zoom in 
 	else if(key == Qt::Key_Minus) // "-" button pressed

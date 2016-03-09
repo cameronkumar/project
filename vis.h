@@ -51,10 +51,23 @@ class vis: public QGLWidget {
 	*/
 	void drawSphere(Point centre, double radius);
 	
+	/**
+	   writes centre and radius information from file to vectors
+	   
+	   @param objData file containing object raw data 
+	*/
+	void setData(char* objData);
+	
 	private:
 	
 	// holds the coordinate points for a standard sphere
 	vector<Point> spherePoints; 
+	
+	// holds the data of all geometric objects centres
+	vector<Point> objCentre;
+	
+	// holds the radius data of geometric objects
+	vector<double> objRadius;
 
 	protected:
 	

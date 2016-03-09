@@ -8,6 +8,7 @@
 
 #include <QApplication> // this is a Qt application
 #include "vis.h" // header defining the visualisation
+#include <iostream>
 
 using namespace std;
 
@@ -21,13 +22,23 @@ using namespace std;
 int main(int argc, char *argv[]) {
 	
 	QApplication app(argc, argv); // creating the application
-	vis *visualisation = new vis(NULL); // visualisation instance
 	
-	// now to display the visualisation in app
-	visualisation -> show();
-	visualisation -> resize(1024,512);
+	// want to read sphere data from command line argument, handled here
+	if(argc == 2) { // create vis if 1 file specified
 	
-	// run the application
-	return app.exec();
+		vis *visualisation = new vis(NULL); // create vis instance
+		visualisation -> setData(argv[1]); // pass data to be handled
+		
+		// now to display the visualisation in app
+		visualisation -> show();
+		visualisation -> resize(1024,512);
 	
+		// run the application
+		return app.exec();
+	} 
+	
+	else {
+		cout << "ERROR: no geometric data file specified!\n";
+		return 1;
+	}	
 }

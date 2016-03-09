@@ -11,6 +11,8 @@
 #include <QWheelEvent>
 #include <QKeyEvent>
 #include <cmath> // for power & other math funcs
+#include <iostream>
+#include <fstream> // for file handling
 
 #include <QDebug> // USED FOR DEBUGGING
 
@@ -108,6 +110,36 @@ void vis::drawSphere(Point centre, double radius){
 
 }
 
+/**
+   writes centre and radius information from file to vectors
+	   
+   @param objData file containing object raw data 
+*/
+void vis::setData(char* objData) {
+	
+	double x, y, z, rad; // will temporarily hold file inputs
+	int i = 1; // counter for error output
+	
+	ifstream dataFile(objData);
+	if (dataFile.is_open()) { // opens file if location is valid
+	
+		while (dataFile >> x >> y >> z >> rad) { // reads lines of file
+			if(rad > 0.0) { // only radius over 0 valid
+				// write to vector
+				objCentre.push_back(Point = {x, y, z}); 
+				objRadius.push_back(rad);
+			} else { // radius error
+				cout << "ERROR: line " << i << " of file is invalid and will be ignored!\n";
+			}
+			i++; // increment counter
+		}
+		
+		dataFile.close();	
+		
+	} else { // invalid file specified
+		cout << "ERROR: file specified is invalid!\n";
+	}
+}	
 
 /**
    initialises environment for OpenGL rendering when instance called
@@ -166,11 +198,9 @@ void vis::paintGL() {
 	glMaterialfv(GL_FRONT, GL_SPECULAR, fWhite); 
 	glMaterialf(GL_FRONT, GL_SHININESS, 128.0);
 	
-	Point p = {1.0, 0.5, 0.0};
-	drawSphere(p, 0.3);
-	
-	Point q = {4.0, 2.0, -1.1};
-	drawSphere(q, 1.0);
+	// draw objects from vectors
+	for(int i = 0; i < objCentre.size(); i++)
+		drawSpheres(objCentre.at(i), objRadius.at(i));
 	
 	// draw frame and render to screen
 	glFinish();

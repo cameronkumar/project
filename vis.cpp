@@ -126,7 +126,7 @@ void vis::setData(char* objData) {
 		while (dataFile >> x >> y >> z >> rad) { // reads lines of file
 			if(rad > 0.0) { // only radius over 0 valid
 				// write to vector
-				objCentre.push_back(Point = {x, y, z}); 
+				objCentre.push_back((Point){x, y, z}); 
 				objRadius.push_back(rad);
 			} else { // radius error
 				cout << "ERROR: line " << i << " of file is invalid and will be ignored!\n";
@@ -134,7 +134,9 @@ void vis::setData(char* objData) {
 			i++; // increment counter
 		}
 		
-		dataFile.close();	
+		dataFile.close();
+		
+	
 		
 	} else { // invalid file specified
 		cout << "ERROR: file specified is invalid!\n";
@@ -158,7 +160,7 @@ void vis::initializeGL() {
 	// setting up lighting
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0); // creating one light, light0
-	GLfloat fPosition[4] = {0.0, 0.0, 0.0, 1.0}; // light position
+	GLfloat fPosition[4] = {0.0, 0.0, -1.0, 1.0}; // light position
 	glLightfv(GL_LIGHT0, GL_POSITION, fPosition); // setting position
 	// now to specify ambient, diffuse, and specular intensities, all white
 	GLfloat fiAmbient[4] = {0.4, 0.4, 0.4, 1.0};
@@ -199,8 +201,8 @@ void vis::paintGL() {
 	glMaterialf(GL_FRONT, GL_SHININESS, 128.0);
 	
 	// draw objects from vectors
-	for(int i = 0; i < objCentre.size(); i++)
-		drawSpheres(objCentre.at(i), objRadius.at(i));
+	for(int i = 0; i < (int)objCentre.size(); i++)
+		drawSphere(objCentre.at(i), objRadius.at(i));
 	
 	// draw frame and render to screen
 	glFinish();

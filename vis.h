@@ -55,8 +55,9 @@ class vis: public QGLWidget {
 	   writes centre and radius information from file to vectors
 	   
 	   @param objData file containing object raw data 
+	   @return returns 1 if there is a major error, else 0
 	*/
-	void setData(char* objData);
+	int setData(char* objData);
 	
 	private:
 	

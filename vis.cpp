@@ -114,12 +114,13 @@ void vis::drawSphere(Point centre, double radius){
    writes centre and radius information from file to vectors
 	   
    @param objData file containing object raw data 
+   @return returns 1 if there is a major error, else 0
 */
-void vis::setData(char* objData) {
+int vis::setData(char* objData) {
 	
 	double x, y, z, rad; // will temporarily hold file inputs
 	int i = 1; // counter for error output
-	
+
 	ifstream dataFile(objData);
 	if (dataFile.is_open()) { // opens file if location is valid
 	
@@ -136,19 +137,18 @@ void vis::setData(char* objData) {
 		
 		dataFile.close();
 		
-		// sometimes when a double is missed from the file incorrect spheres are drawn, this handles that error
-		if((int)objRadius.size < i) {
-			cout << "ERROR: centre and radius not specified for all objects!\n";
-		}
-		
-		// check that file wasn't empty
-		if((int)objRadius.size() < 1) {
-			cout << "ERROR: no objects specified in file! \n";
+		// check if file is empty or incorrect number of doubles specified
+		if((int)objRadius.size() < i) {
+			cout << "ERROR: file is empty or centre and radius not specified for all objects!\n";
+			return 1; // exits qt program
 		}
 		
 	} else { // invalid file specified
 		cout << "ERROR: file specified is invalid!\n";
+		return 1; // exits qt program
 	}
+	
+	return 0; // succesful return
 }	
 
 /**

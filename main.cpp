@@ -27,14 +27,18 @@ int main(int argc, char *argv[]) {
 	if(argc == 2) { // create vis if 1 file specified
 	
 		vis *visualisation = new vis(NULL); // create vis instance
-		visualisation -> setData(argv[1]); // pass data to be handled
 		
-		// now to display the visualisation in app
-		visualisation -> show();
-		visualisation -> resize(1024,512);
+		// load data from file into visualisation
+		if((visualisation -> setData(argv[1])) == 1) // error case
+			return 1;
+		else {
+			// display the visualisation in app
+			visualisation -> show();
+			visualisation -> resize(1024,512);
 	
-		// run the application
-		return app.exec();
+			// run the application
+			return app.exec();
+		}
 	} 
 	
 	else {

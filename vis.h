@@ -72,6 +72,9 @@ class vis: public QGLWidget {
 	
 	// holds the starting position when the mouse is clicked
 	QPoint startPos;
+	
+	// holds the current zoom scale of the camera, used to scale translation
+	double scaleFactor;
 
 	protected:
 	

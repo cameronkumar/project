@@ -70,7 +70,7 @@ void vis::drawSphere(Point centre, double radius){
 	
 	// load modelview for translation and scaling
 	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity(); // reset the matrix
+	glPushMatrix(); // push matrix to apply object specific transforms
 	glTranslatef(centre.x, centre.y, centre.z);
 	glScalef(radius, radius, radius);	
 			
@@ -107,7 +107,8 @@ void vis::drawSphere(Point centre, double radius){
 		glVertex3d(p.x, p.y, p.z); // render vertex
 	}
 	glEnd();
-
+	
+	glPopMatrix(); // return to normal modelview matrix
 }
 
 /**
@@ -178,13 +179,16 @@ void vis::initializeGL() {
 	glLoadIdentity();
 	glFrustum(-2.0,2.0,-1.0,1.0,2.0,1000.0); // sets the clipping plane
 	glTranslatef(0.0, 0.0, -10.0); // moves camera back to view scene
+	glMatrixMode(GL_MODELVIEW); // initialise modelview matrix
+	glLoadIdentity();
+	scaleFactor = 1.0; // initialise the zoom factor variable
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
 	// setting up lighting
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0); // creating one light, light0
-	GLfloat fPosition[4] = {0.0, 0.0, 1.0, 1.0}; // light position
+	GLfloat fPosition[4] = {0.0, 0.0, -1.0, 1.0}; // light position
 	glLightfv(GL_LIGHT0, GL_POSITION, fPosition); // setting position
 	// now to specify ambient, diffuse, and specular intensities, all white
 	GLfloat fiAmbient[4] = {0.4, 0.4, 0.4, 1.0};
@@ -246,10 +250,14 @@ void vis::wheelEvent(QWheelEvent *event) {
 	deg = deg/120.0; // deg now number of scrolls in + or - dir'n
 	
 	glMatrixMode(GL_PROJECTION); // change to modelview matrix
-	if(deg > 0.0) // wheel scrolled forward
+	if(deg > 0.0) {// wheel scrolled forward
 		glScalef(pow(1.1, deg), pow(1.1, deg), pow(1.1, deg)); 
-	else // wheel scrolled backward
+		scaleFactor = scaleFactor*pow(1.1, deg); // update scale factor
+	}
+	else {// wheel scrolled backward
 		glScalef(pow(0.9, -deg), pow(0.9, -deg), pow(0.9, -deg));
+		scaleFactor = scaleFactor*pow(0.9, -deg); // update scale factor
+	}
 	
 	event->accept(); // accepts the event
 	updateGL(); // redraw to screen
@@ -266,10 +274,14 @@ void vis::keyPressEvent(QKeyEvent *event) {
 	int key = event->key(); // get the integer value of key pressed
 	
 	glMatrixMode(GL_PROJECTION); // change to modelview matrix
-	if(key == Qt::Key_Equal) // "+" button pressed
+	if(key == Qt::Key_Equal) { // "+" button pressed
 		glScalef(1.1f, 1.1f, 1.1f); // zoom in 
-	else if(key == Qt::Key_Minus) // "-" button pressed
+		scaleFactor = scaleFactor*1.1; // update scale factor
+	}
+	else if(key == Qt::Key_Minus) {// "-" button pressed
 		glScalef(0.9f, 0.9f, 0.9f); // zoom out
+		scaleFactor = scaleFactor*0.9; // update scale factor
+	}
 		
 	event->accept(); // accepts the event
 	updateGL(); // redraw to screen
@@ -291,12 +303,14 @@ void vis::mouseMoveEvent(QMouseEvent *event) {
 	float xPos = (float)(event->x() - startPos.x());
 	float yPos = (float)(event->y() - startPos.y());
 	
-	// translate camera case
+	// translate camera case, translates based on current zoom scale
 	if(event->buttons() == Qt::RightButton) {
-		glMatrixMode(GL_PROJECTION);
-		glTranslatef(xPos/200.0, yPos/200.0, 0.0); // translate view
+		glMatrixMode(GL_MODELVIEW);
+		glTranslatef((1.0/scaleFactor)*(xPos/68.0), (1.0/scaleFactor)*(-yPos/68.0), 0.0); // translate view based on zoom scale
 	}
 	
+	event->accept(); // accepts event
+	updateGL(); // redraw screen
 	startPos = event->pos(); // update the start position
 	
 }

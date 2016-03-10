@@ -71,8 +71,8 @@ void vis::drawSphere(Point centre, double radius){
 	// load modelview for translation and scaling
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity(); // reset the matrix
-	glScalef(radius, radius, radius);
-	glTranslatef(centre.x, centre.y, centre.z);	
+	glTranslatef(centre.x, centre.y, centre.z);
+	glScalef(radius, radius, radius);	
 			
 	// draw the strips of our sphere 
 	glBegin(GL_QUAD_STRIP);
@@ -119,27 +119,42 @@ void vis::drawSphere(Point centre, double radius){
 int vis::setData(char* objData) {
 	
 	double x, y, z, rad; // will temporarily hold file inputs
-	int i = 1; // counter for error output
-
+	int i = 0; // counter for error output
+	
 	ifstream dataFile(objData);
 	if (dataFile.is_open()) { // opens file if location is valid
 	
-		while (dataFile >> x >> y >> z >> rad) { // reads lines of file
-			if(rad > 0.0) { // only radius over 0 valid
-				// write to vector
-				objCentre.push_back((Point){x, y, z}); 
-				objRadius.push_back(rad);
-			} else { // radius error
-				cout << "ERROR: line " << i << " of file is invalid and will be ignored!\n";
-			}
-			i++; // increment counter
+		/* data is read in this way so if a value is missed from the file it can be detected.
+		   the x is read first as an eof check, then the error counter is incremented so we can
+		   compare this later with the size of our vectors. If a value is missing, there will 
+		   be a discrepency between the error counter and vector size */
+		while(dataFile >> x) {
+			i++; // adds to the increment counter, used for error testing
+			if(dataFile >> y >> z >> rad) { // reads lines of file
+				if(rad > 0.0) { // only radius over 0 valid
+					// write to vector
+					objCentre.push_back((Point){x, y, z}); 
+					objRadius.push_back(rad);
+					cout << x << " " << y << " " << z << " " << rad << "\n";
+				
+				} else { // radius error
+					cout << "ERROR: line " << i << " of file is invalid and will be ignored!\n";
+					i -= 1; // takes one off counter to ignore line
+				}
+			} 
 		}
 		
-		dataFile.close();
+		dataFile.close();		
 		
-		// check if file is empty or incorrect number of doubles specified
+		// check if file hasincorrect number of doubles specified
 		if((int)objRadius.size() < i) {
-			cout << "ERROR: file is empty or centre and radius not specified for all objects!\n";
+			cout << "ERROR: centre and radius not specified for all objects!\n";
+			return 1; // exits qt program
+		}
+		
+		// check file wasn't empty
+		if(i == 0) {
+			cout << "ERROR: file was empty!\n";
 			return 1; // exits qt program
 		}
 		
@@ -161,14 +176,15 @@ void vis::initializeGL() {
 	glClearColor(0.0,0.0,0.0,0.0); // black background
 	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
 	glLoadIdentity();
-	glOrtho(-2.0,2.0,-1.0,1.0,-1.0,1.0); // sets the clipping plane
+	glFrustum(-2.0,2.0,-1.0,1.0,2.0,1000.0); // sets the clipping plane
+	glTranslatef(0.0, 0.0, -10.0); // moves camera back to view scene
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
 	// setting up lighting
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0); // creating one light, light0
-	GLfloat fPosition[4] = {0.0, 0.0, -1.0, 1.0}; // light position
+	GLfloat fPosition[4] = {0.0, 0.0, 1.0, 1.0}; // light position
 	glLightfv(GL_LIGHT0, GL_POSITION, fPosition); // setting position
 	// now to specify ambient, diffuse, and specular intensities, all white
 	GLfloat fiAmbient[4] = {0.4, 0.4, 0.4, 1.0};
@@ -257,4 +273,30 @@ void vis::keyPressEvent(QKeyEvent *event) {
 		
 	event->accept(); // accepts the event
 	updateGL(); // redraw to screen
+}
+
+/**
+   interaction handling for when a button on the mouse is pressed,  
+   used for camera translation and rotation, and picking. 
+   
+   @param event information about the mouse button press
+*/
+void vis::mousePressEvent(QMouseEvent *event) { 
+	startPos = event->pos(); // records position that mouse was clicked
+}
+
+void vis::mouseMoveEvent(QMouseEvent *event) {
+	
+	// calculate change in x and y from start point to current mouse pos
+	float xPos = (float)(event->x() - startPos.x());
+	float yPos = (float)(event->y() - startPos.y());
+	
+	// translate camera case
+	if(event->buttons() == Qt::RightButton) {
+		glMatrixMode(GL_PROJECTION);
+		glTranslatef(xPos/200.0, yPos/200.0, 0.0); // translate view
+	}
+	
+	startPos = event->pos(); // update the start position
+	
 }

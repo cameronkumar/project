@@ -69,6 +69,9 @@ class vis: public QGLWidget {
 	
 	// holds the radius data of geometric objects
 	vector<double> objRadius;
+	
+	// holds the starting position when the mouse is clicked
+	QPoint startPos;
 
 	protected:
 	
@@ -105,7 +108,23 @@ class vis: public QGLWidget {
 	   @param event information about the key pressed
 	*/
 	void keyPressEvent(QKeyEvent *event);
-
+	
+	/**
+	   interaction handling for when a button on the mouse is pressed,  
+	   used for camera translation and rotation, and picking
+	   
+	   @param event information about the mouse button press
+	*/
+	void mousePressEvent(QMouseEvent *event);
+	
+	/**
+	   interaction handling for when mouse movements take place, used for
+	   camera translations and rotations
+	   
+	   @param event information about the mouse button press
+	*/
+	void mouseMoveEvent(QMouseEvent *event);
+	
 }; // end of class
 
 #endif // ends our header guard

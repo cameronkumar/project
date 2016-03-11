@@ -136,7 +136,6 @@ int vis::setData(char* objData) {
 					// write to vector
 					objCentre.push_back((Point){x, y, z}); 
 					objRadius.push_back(rad);
-					cout << x << " " << y << " " << z << " " << rad << "\n";
 				
 				} else { // radius error
 					cout << "ERROR: line " << i << " of file is invalid and will be ignored!\n";
@@ -209,10 +208,19 @@ void vis::initializeGL() {
    @param h the new height of the widget
 */
 void vis::resizeGL(int w, int h) {
-
-	// resize the viewport to that of the new widget dimensions
-	glViewport(0,0,w,h);
 	
+	glViewport(0, 0, w, h);
+	
+	float ratio = (float)w/(float)h;
+	cout << ratio << "\n";
+	
+	// now change the frustum to reflect the width and height;
+	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
+	glLoadIdentity();
+	glFrustum(-ratio,ratio,-1.0,1.0,2.0,1000.0); // sets the clipping plane
+	glTranslatef(0.0, 0.0, -10.0); // moves camera back to view scene
+	glScalef(scaleFactor, scaleFactor, scaleFactor);
+
 }
 
 /**

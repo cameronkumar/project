@@ -186,16 +186,18 @@ void vis::initializeGL() {
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
 	// setting up lighting
+	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+	glShadeModel(GL_SMOOTH);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0); // creating one light, light0
-	GLfloat fPosition[4] = {0.0, 0.0, -1.0, 1.0}; // light position
+	GLfloat fPosition[4] = {0.0, 1.0, 0.0, 1.0}; // light position
 	glLightfv(GL_LIGHT0, GL_POSITION, fPosition); // setting position
 	// now to specify ambient, diffuse, and specular intensities, all white
-	GLfloat fiAmbient[4] = {0.4, 0.4, 0.4, 1.0};
+	GLfloat fiAmbient[4] = {0.2, 0.2, 0.2, 1.0};
 	glLightfv(GL_LIGHT0, GL_AMBIENT, fiAmbient); 
-	GLfloat fiDiffuse[4] = {0.6, 0.6, 0.6, 1.0};
+	GLfloat fiDiffuse[4] = {0.8, 0.8, 0.8, 1.0};
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, fiDiffuse);
-	GLfloat fiSpecular[4] = {1.0, 1.0, 1.0, 1.0};
+	GLfloat fiSpecular[4] = {0.0, 0.0, 0.0, 0.0};
 	glLightfv(GL_LIGHT0, GL_SPECULAR, fiSpecular);
 	
 }
@@ -305,8 +307,19 @@ void vis::mouseMoveEvent(QMouseEvent *event) {
 	
 	// translate camera case, translates based on current zoom scale
 	if(event->buttons() == Qt::RightButton) {
-		glMatrixMode(GL_MODELVIEW);
+	
+		glMatrixMode(GL_MODELVIEW); // load modelview matrix to be translated
 		glTranslatef((1.0/scaleFactor)*(xPos/68.0), (1.0/scaleFactor)*(-yPos/68.0), 0.0); // translate view based on zoom scale
+		
+	} else if (event->buttons() == Qt::LeftButton) {
+	
+		glMatrixMode(GL_MODELVIEW); // load projection matrix to be translated
+		// rotate x direction movement about y axis
+		glRotatef(xPos, 0.0, 1.0, 0.0); 
+		// NEEED TO CHANGE THIS!
+		// rotate y direction whatever vector is perpendicular to screen
+		glRotatef(yPos, 1.0, 0.0, 0.0);
+		
 	}
 	
 	event->accept(); // accepts event

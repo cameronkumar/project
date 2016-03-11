@@ -75,6 +75,7 @@ class vis: public QGLWidget {
 	
 	// holds the current zoom scale of the camera, used to scale translation
 	double scaleFactor;
+	
 
 	protected:
 	

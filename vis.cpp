@@ -181,6 +181,7 @@ void vis::initializeGL() {
 	glMatrixMode(GL_MODELVIEW); // initialise modelview matrix
 	glLoadIdentity();
 	scaleFactor = 1.0; // initialise the zoom factor variable
+	pRot = yRot = 0.0; // initialise rotation variables
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
@@ -215,11 +216,11 @@ void vis::resizeGL(int w, int h) {
 	cout << ratio << "\n";
 	
 	// now change the frustum to reflect the width and height;
-	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
-	glLoadIdentity();
-	glFrustum(-ratio,ratio,-1.0,1.0,2.0,1000.0); // sets the clipping plane
-	glTranslatef(0.0, 0.0, -10.0); // moves camera back to view scene
-	glScalef(scaleFactor, scaleFactor, scaleFactor);
+//	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
+//	glLoadIdentity();
+//	glFrustum(-ratio,ratio,-1.0,1.0,2.0,1000.0); // sets the clipping plane
+//	glTranslatef(0.0, 0.0, -10.0); // moves camera back to view scene
+//	glScalef(scaleFactor, scaleFactor, scaleFactor);
 
 }
 
@@ -313,20 +314,30 @@ void vis::mouseMoveEvent(QMouseEvent *event) {
 	float xPos = (float)(event->x() - startPos.x());
 	float yPos = (float)(event->y() - startPos.y());
 	
-	// translate camera case, translates based on current zoom scale
+	// translate camera case, translates based on current zoom scale and rotation about y
+	// we translate in 2 dimensions, up and down in y direction, and left and right in axis
+	// parallel to screen. This axis direction needs to be calculated from y rotation
 	if(event->buttons() == Qt::RightButton) {
 	
 		glMatrixMode(GL_MODELVIEW); // load modelview matrix to be translated
-		glTranslatef((1.0/scaleFactor)*(xPos/68.0), (1.0/scaleFactor)*(-yPos/68.0), 0.0); // translate view based on zoom scale
+		glTranslatef(cos((yRot*M_PI)/180.0)*(1.0/scaleFactor)*(xPos/68.0), // x direction translation
+		             (1.0/scaleFactor)*(-yPos/68.0), // y direction translation
+		             sin((yRot*M_PI)/180.0)*(1.0/scaleFactor)*(xPos/68.0)); // z direction translation
 		
 	} else if (event->buttons() == Qt::LeftButton) {
 	
-		glMatrixMode(GL_MODELVIEW); // load projection matrix to be translated
-		// rotate x direction movement about y axis
+		glMatrixMode(GL_MODELVIEW); // load modelview matrix to be translated
+		// rotate x direction movement about yaw axis
 		glRotatef(xPos, 0.0, 1.0, 0.0); 
-		// NEEED TO CHANGE THIS!
-		// rotate y direction whatever vector is perpendicular to screen
-		glRotatef(yPos, 1.0, 0.0, 0.0);
+		// we want to keep track of the rotation about the yaw axis, so update var
+		yRot += xPos;
+		
+		// rotate about pitch axis if rotation doesnt exceed limits
+		if(-90.0<pRot+yPos && pRot+yPos<90.0) {
+			glRotatef(yPos, cos((yRot*M_PI)/180.0), 0.0, sin((yRot*M_PI)/180.0));
+			// we want to keep track of pitch rotation so it doesnt go over 180
+			pRot += yPos;
+		}
 		
 	}
 	

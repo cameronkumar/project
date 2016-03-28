@@ -76,6 +76,12 @@ class vis: public QGLWidget {
 	// holds the current zoom scale of the camera, used to scale translation
 	double scaleFactor;
 	
+	// holds current rotation about the yaw axis, used for calculating transforms
+	double yRot;
+	
+	// holds the current rotation about the pitch axis, used to prevent over rotation
+	double pRot;
+	
 
 	protected:
 	

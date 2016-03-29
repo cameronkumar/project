@@ -167,6 +167,20 @@ int vis::setData(char* objData) {
 }	
 
 /**
+   populate the colours vector with a selection of RGB values
+*/
+void vis::initColours() {
+	
+	colour.push_back((Point){1.0, 0.0, 0.0}); // red (default)
+	colour.push_back((Point){0.0, 1.0, 0.0}); // green 
+	colour.push_back((Point){0.0, 0.0, 1.0}); // blue 
+	colour.push_back((Point){0.0, 1.0, 1.0}); // cyan	
+	colour.push_back((Point){1.0, 0.0, 1.0}); // pink
+	colour.push_back((Point){1.0, 1.0, 0.0}); // yellow
+	
+}
+
+/**
    initialises environment for OpenGL rendering when instance called
 */
 void vis::initializeGL() {
@@ -182,6 +196,7 @@ void vis::initializeGL() {
 	glLoadIdentity();
 	scaleFactor = 1.0; // initialise the zoom factor variable
 	pRot = yRot = 0.0; // initialise rotation variables
+	initColours(); // initialise colour vector
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
@@ -213,14 +228,13 @@ void vis::resizeGL(int w, int h) {
 	glViewport(0, 0, w, h);
 	
 	float ratio = (float)w/(float)h;
-	cout << ratio << "\n";
 	
 	// now change the frustum to reflect the width and height;
-//	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
-//	glLoadIdentity();
-//	glFrustum(-ratio,ratio,-1.0,1.0,2.0,1000.0); // sets the clipping plane
-//	glTranslatef(0.0, 0.0, -10.0); // moves camera back to view scene
-//	glScalef(scaleFactor, scaleFactor, scaleFactor);
+	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
+	glLoadIdentity();
+	glFrustum(-ratio,ratio,-1.0,1.0,2.0,1000.0); // sets the clipping plane
+	glTranslatef(0.0, 0.0, -10.0); // moves camera back to view scene
+	glScalef(scaleFactor, scaleFactor, scaleFactor);
 
 }
 

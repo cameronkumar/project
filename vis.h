@@ -59,6 +59,11 @@ class vis: public QGLWidget {
 	*/
 	int setData(char* objData);
 	
+	/**
+	   populate the colours vector with a selection of RGB values
+	*/
+	void initColours();
+	
 	private:
 	
 	// holds the coordinate points for a standard sphere
@@ -69,6 +74,15 @@ class vis: public QGLWidget {
 	
 	// holds the radius data of geometric objects
 	vector<double> objRadius;
+	
+	// holds the RGB colour values of each object (default red)
+	vector<Point> objColour;
+	
+	// holds the transparency value for each object (default 1.0)
+	vector<double> objTransparency;
+	
+	// holds the RGB colour options for objects
+	vector<Point> colour;
 	
 	// holds the starting position when the mouse is clicked
 	QPoint startPos;

@@ -136,6 +136,9 @@ int vis::setData(char* objData) {
 					// write to vector
 					objCentre.push_back((Point){x, y, z}); 
 					objRadius.push_back(rad);
+					// set default colour and transparency values
+					objColour.push_back((RGBA){1.0, 0.0, 0.0, 1.0});
+					objTransparency.push_back(1.0);
 				
 				} else { // radius error
 					cout << "ERROR: line " << i << " of file is invalid and will be ignored!\n";
@@ -171,12 +174,13 @@ int vis::setData(char* objData) {
 */
 void vis::initColours() {
 	
-	colour.push_back((Point){1.0, 0.0, 0.0}); // red (default)
-	colour.push_back((Point){0.0, 1.0, 0.0}); // green 
-	colour.push_back((Point){0.0, 0.0, 1.0}); // blue 
-	colour.push_back((Point){0.0, 1.0, 1.0}); // cyan	
-	colour.push_back((Point){1.0, 0.0, 1.0}); // pink
-	colour.push_back((Point){1.0, 1.0, 0.0}); // yellow
+	colour.push_back((RGBA){1.0, 0.0, 0.0, 1.0}); // red (default)
+	colour.push_back((RGBA){0.0, 1.0, 0.0, 1.0}); // green 
+	colour.push_back((RGBA){0.0, 0.0, 1.0, 1.0}); // blue 
+	colour.push_back((RGBA){0.0, 1.0, 1.0, 1.0}); // cyan	
+	colour.push_back((RGBA){1.0, 0.0, 1.0, 1.0}); // pink
+	colour.push_back((RGBA){1.0, 1.0, 0.0, 1.0}); // yellow
+	colour.push_back((RGBA){1.0, 1.0, 1.0, 1.0}); // white
 	
 }
 
@@ -197,6 +201,7 @@ void vis::initializeGL() {
 	scaleFactor = 1.0; // initialise the zoom factor variable
 	pRot = yRot = 0.0; // initialise rotation variables
 	initColours(); // initialise colour vector
+	objColour.at(2) = colour.at(4);
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
@@ -245,17 +250,20 @@ void vis::paintGL() {
 
 	// clearing screen first
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	// initialise default surface properties for all objects, red colour
-	GLfloat fRed[4] = {1.0, 0.0, 0.0, 1.0};
+	// initialise standard surface properties for all objects
 	GLfloat fWhite[4] = {1.0, 1.0, 1.0, 1.0};
-	glMaterialfv(GL_FRONT, GL_AMBIENT, fRed); 
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, fRed); 
-	glMaterialfv(GL_FRONT, GL_SPECULAR, fWhite); 
-	glMaterialf(GL_FRONT, GL_SHININESS, 128.0);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, fWhite); // white specular highlights
+	glMaterialf(GL_FRONT, GL_SHININESS, 64.0);
 	
-	// draw objects from vectors
-	for(int i = 0; i < (int)objCentre.size(); i++)
+	// draw objects from vectors, specify surface properties from vector
+	for(int i = 0; i < (int)objCentre.size(); i++) {
+		// get colour from vector and set properties
+		RGBA col = objColour.at(i); 
+		glMaterialfv(GL_FRONT, GL_AMBIENT, (GLfloat*)&col);
+		glMaterialfv(GL_FRONT, GL_DIFFUSE, (GLfloat*)&col);
+		// draw the sphere
 		drawSphere(objCentre.at(i), objRadius.at(i));
+	}
 	
 	// draw frame and render to screen
 	glFinish();

@@ -23,6 +23,13 @@ struct Point {
 	
 };
 
+// defines a structure to hold quads of floats for use as RGBA values
+struct RGBA {
+
+	float R, G, B, A;
+
+};
+
 // defining our visualisation class as subclass of QGLWidget
 class vis: public QGLWidget {
 
@@ -76,13 +83,13 @@ class vis: public QGLWidget {
 	vector<double> objRadius;
 	
 	// holds the RGB colour values of each object (default red)
-	vector<Point> objColour;
+	vector<RGBA> objColour;
 	
 	// holds the transparency value for each object (default 1.0)
 	vector<double> objTransparency;
 	
 	// holds the RGB colour options for objects
-	vector<Point> colour;
+	vector<RGBA> colour;
 	
 	// holds the starting position when the mouse is clicked
 	QPoint startPos;

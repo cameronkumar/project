@@ -60,13 +60,14 @@ vector<Point> vis::makeSpherePoints(int nPoints) {
 	
 }
 
+
 /**
    draws a sphere with specified centre and radius
    
    @param centre coordinate point of centre location
    @param radius radius of sphere 
 */
-void vis::drawSphere(Point centre, double radius){
+void vis::drawSphere(Point centre, double radius) {
 	
 	// load modelview for translation and scaling
 	glMatrixMode(GL_MODELVIEW);
@@ -85,8 +86,12 @@ void vis::drawSphere(Point centre, double radius){
 			// get points
 			Point lower = spherePoints.at((i * CIRCLE_POINTS) + (j % CIRCLE_POINTS));
 			Point upper = spherePoints.at(((i+1) * CIRCLE_POINTS) + (j % CIRCLE_POINTS));
-			// render vertices
+			// render vertices with normals, as the sphere points are for a sphere
+			// with radius 1 and centre (0,0,0), normal vector is just each sphere point
+			// interpretted as a vector
+			glNormal3d(lower.x, lower.y, lower.z); 
 			glVertex3d(lower.x, lower.y, lower.z);
+			glNormal3d(upper.x, upper.y, upper.z);
 			glVertex3d(upper.x, upper.y, upper.z);
 		}
 	}			
@@ -174,14 +179,58 @@ int vis::setData(char* objData) {
 */
 void vis::initColours() {
 	
-	colour.push_back((RGBA){1.0, 0.0, 0.0, 1.0}); // red (default)
-	colour.push_back((RGBA){0.0, 1.0, 0.0, 1.0}); // green 
-	colour.push_back((RGBA){0.0, 0.0, 1.0, 1.0}); // blue 
-	colour.push_back((RGBA){0.0, 1.0, 1.0, 1.0}); // cyan	
-	colour.push_back((RGBA){1.0, 0.0, 1.0, 1.0}); // pink
-	colour.push_back((RGBA){1.0, 1.0, 0.0, 1.0}); // yellow
-	colour.push_back((RGBA){1.0, 1.0, 1.0, 1.0}); // white
+	colour.push_back((RGBA){1.0, 0.0, 0.0, 0.3}); // red (default)
+	colour.push_back((RGBA){0.0, 1.0, 0.0, 0.3}); // green 
+	colour.push_back((RGBA){0.0, 0.0, 1.0, 0.3}); // blue 
+	colour.push_back((RGBA){0.0, 1.0, 1.0, 0.3}); // cyan	
+	colour.push_back((RGBA){1.0, 0.0, 1.0, 0.3}); // pink
+	colour.push_back((RGBA){1.0, 1.0, 0.0, 0.3}); // yellow
+	colour.push_back((RGBA){1.0, 1.0, 1.0, 0.3}); // white
 	
+}
+
+/**
+   orders the spheres based on opacity and which is closest to the camera
+	   
+   @return returns a vector of integers representing the order of furthest to nearest spheres
+*/
+vector<int> vis::sphereOrder() {
+	
+	map<int, double> translucentid; // will hold id and distance of translucent objects
+	vector<int> opaqueid; // will hold id of opaque objects
+	
+	// need to seperate opaque from translucent objects first before we sort translucents
+	for(int i = 0; i < (int)objCentre.size(); i++) {
+		if(objColour.at(i).A == 1.0)
+			opaqueid.push_back(i);
+		else
+			translucentid.insert(pair<int, double>(i, 0.0));
+	}
+	
+	// to sort translucent objects, first calculate the distance from camera
+	vector<double> dist; // will store distance from plane
+	// we will work out order based on point-plane distance from the cameras
+	// parallel plane at origin, need to work out plane normal first
+	vector<Point> norm = {(sin((yRot*M_PI)/180.0))*cos((pRot*M_PI)/180.0), // x
+			      sin((pRot*M_PI)/180.0), // y
+			      cos((yRot*M_PI)/180.0)*cos((pRot*M_PI)/180.0)); // z
+	// we also need to calculate the normal vectors magnitude for the equation
+	double normMag = sqrt(pow(norm.x, 2) + pow(norm.y, 2) + pow(norm.z, 2)); 
+	norm.x = norm.x / normMag; // normalizing x
+	norm.y = norm.y / normMag; // normalizing y
+	norm.z = norm.z / normMag; // normalizing z
+	
+	int i = 0; // will be used to lookup values
+	for(map<int, double>::iterator it = translucentid.begin(); it = translucentid.end(); it++) {
+		Point cen = objCentre.at(translucentid.at(i)); // get centre
+		double rad = objRadius.at(translucentid.at(i)); // get radius
+		
+		// calculate signed distance from plane
+		double d = (norm.x*cen.x + norm.y*cen.y + norm.z*cen.z)/normMag;
+		it->second = d; // update the map
+		i++; // manually iterate integer counter
+	}
+
 }
 
 /**
@@ -191,6 +240,7 @@ void vis::initializeGL() {
 
 	// initialise sphere points
 	spherePoints = makeSpherePoints(CIRCLE_POINTS);
+	
 	glClearColor(0.0,0.0,0.0,0.0); // black background
 	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
 	glLoadIdentity();
@@ -202,23 +252,27 @@ void vis::initializeGL() {
 	pRot = yRot = 0.0; // initialise rotation variables
 	initColours(); // initialise colour vector
 	objColour.at(2) = colour.at(4);
+	objColour.at(3) = colour.at(2);
+	objColour.at(4) = colour.at(1);
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
 	// setting up lighting
-	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0); // creating one light, light0
-	GLfloat fPosition[4] = {0.0, 1.0, 0.0, 1.0}; // light position
-	glLightfv(GL_LIGHT0, GL_POSITION, fPosition); // setting position
-	// now to specify ambient, diffuse, and specular intensities, all white
+	// now to specify ambient and diffuse intensities, all white
 	GLfloat fiAmbient[4] = {0.2, 0.2, 0.2, 1.0};
 	glLightfv(GL_LIGHT0, GL_AMBIENT, fiAmbient); 
 	GLfloat fiDiffuse[4] = {0.8, 0.8, 0.8, 1.0};
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, fiDiffuse);
-	GLfloat fiSpecular[4] = {0.0, 0.0, 0.0, 0.0};
-	glLightfv(GL_LIGHT0, GL_SPECULAR, fiSpecular);
+	// set global ambient lighting to illuminate scene more
+	GLfloat global_ambient[4] = {0.5, 0.5, 0.5, 1.0};
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
+	
+	// enable blending, this will be used for translucent objects
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 }
 
@@ -250,10 +304,9 @@ void vis::paintGL() {
 
 	// clearing screen first
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	// initialise standard surface properties for all objects
-	GLfloat fWhite[4] = {1.0, 1.0, 1.0, 1.0};
-	glMaterialfv(GL_FRONT, GL_SPECULAR, fWhite); // white specular highlights
-	glMaterialf(GL_FRONT, GL_SHININESS, 64.0);
+	// initialise standard surface properties and light position for all objects
+	GLfloat fPosition[4] = {1.0, 1.0, 1.0, 0.0}; // light position
+	glLightfv(GL_LIGHT0, GL_POSITION, fPosition); // setting light position
 	
 	// draw objects from vectors, specify surface properties from vector
 	for(int i = 0; i < (int)objCentre.size(); i++) {

@@ -71,6 +71,13 @@ class vis: public QGLWidget {
 	*/
 	void initColours();
 	
+	/**
+	   orders the spheres based on opacity and which is closest to the camera
+	   
+	   @return returns a vector of integers representing the order of furthest to nearest spheres
+	*/
+	vector<int> sphereOrder();
+	
 	private:
 	
 	// holds the coordinate points for a standard sphere
@@ -82,11 +89,8 @@ class vis: public QGLWidget {
 	// holds the radius data of geometric objects
 	vector<double> objRadius;
 	
-	// holds the RGB colour values of each object (default red)
+	// holds the RGB colour values of each object (default red), and transparency value A (default 1.0)
 	vector<RGBA> objColour;
-	
-	// holds the transparency value for each object (default 1.0)
-	vector<double> objTransparency;
 	
 	// holds the RGB colour options for objects
 	vector<RGBA> colour;

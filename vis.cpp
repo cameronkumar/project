@@ -143,7 +143,6 @@ int vis::setData(char* objData) {
 					objRadius.push_back(rad);
 					// set default colour and transparency values
 					objColour.push_back((RGBA){1.0, 0.0, 0.0, 1.0});
-					objTransparency.push_back(1.0);
 				
 				} else { // radius error
 					cout << "ERROR: line " << i << " of file is invalid and will be ignored!\n";
@@ -179,13 +178,13 @@ int vis::setData(char* objData) {
 */
 void vis::initColours() {
 	
-	colour.push_back((RGBA){1.0, 0.0, 0.0, 0.3}); // red (default)
-	colour.push_back((RGBA){0.0, 1.0, 0.0, 0.3}); // green 
-	colour.push_back((RGBA){0.0, 0.0, 1.0, 0.3}); // blue 
-	colour.push_back((RGBA){0.0, 1.0, 1.0, 0.3}); // cyan	
-	colour.push_back((RGBA){1.0, 0.0, 1.0, 0.3}); // pink
-	colour.push_back((RGBA){1.0, 1.0, 0.0, 0.3}); // yellow
-	colour.push_back((RGBA){1.0, 1.0, 1.0, 0.3}); // white
+	colour.push_back((Point){1.0, 0.0, 0.0}); // red (default)
+	colour.push_back((Point){0.0, 1.0, 0.0}); // green 
+	colour.push_back((Point){0.0, 0.0, 1.0}); // blue 
+	colour.push_back((Point){0.0, 1.0, 1.0}); // cyan	
+	colour.push_back((Point){1.0, 0.0, 1.0}); // pink
+	colour.push_back((Point){1.0, 1.0, 0.0}); // yellow
+	colour.push_back((Point){1.0, 1.0, 1.0}); // white
 	
 }
 
@@ -204,8 +203,8 @@ vector<objSort> vis::mergeSort(vector<objSort> vec) {
 	
 		// determine middle position and left and right vectors
 		vector<objSort>::iterator mid = vec.begin() + (vec.size()/2);
-		vector<objSort> l(vec.begin(), middle);
-		vector<objSort> r(middle, vec.end());
+		vector<objSort> l(vec.begin(), mid);
+		vector<objSort> r(mid, vec.end());
 		
 		// merge sort each component (recursive step)
 		l = mergeSort(l);
@@ -226,7 +225,7 @@ vector<objSort> vis::mergeSort(vector<objSort> vec) {
 			}
 		}
 		
-		// now adding remaining contents of vectors to sroted list
+		// now adding remaining contents of vectors to sorted list
 		while(iL < (int)l.size()) {
 			sorted.push_back(l[iL]);
 			iL++;
@@ -256,42 +255,66 @@ vector<int> vis::sphereOrder() {
 		if(objColour.at(i).A == 1.0)
 			opaqueid.push_back(i);
 		else
-			translucentid.push_back({i, 0.0});
+			translucentid.push_back((objSort){i, 0.0});
 	}
 	
-	// to sort translucent objects, first calculate the distance from camera
-	// we will work out order based on point-plane distance from the cameras
-	// parallel plane at origin, need to work out plane normal first
-	vector<Point> norm = {(sin((yRot*M_PI)/180.0))*cos((pRot*M_PI)/180.0), // x
+	// initialise vector that will store final order list, opaque objects rendered first
+	vector<int> order = opaqueid; 
+	
+	// if there are translucent objects to be ordered then that is done now
+	if((int)translucentid.size() > 0) {
+		// to sort translucent objects, first calculate the distance from camera
+		// we will work out order based on point-plane distance from the cameras
+		// parallel plane at origin, need to work out plane normal first
+		Point norm = {(sin((-yRot*M_PI)/180.0))*cos((pRot*M_PI)/180.0), // x
 			      sin((pRot*M_PI)/180.0), // y
-			      cos((yRot*M_PI)/180.0)*cos((pRot*M_PI)/180.0)); // z
-	// we also need to calculate the normal vectors magnitude for the equation
-	double normMag = sqrt(pow(norm.x, 2) + pow(norm.y, 2) + pow(norm.z, 2)); 
-	norm.x = norm.x / normMag; // normalizing x
-	norm.y = norm.y / normMag; // normalizing y
-	norm.z = norm.z / normMag; // normalizing z
+			      cos((-yRot*M_PI)/180.0)*cos((pRot*M_PI)/180.0)}; // z
+		// we also need to calculate the normal vectors magnitude for the equation
+		double normMag = sqrt(pow(norm.x, 2) + pow(norm.y, 2) + pow(norm.z, 2)); 
 	
-	for(int i = 0; i < (int)objCentre.size(); i++) {
+		for(int i = 0; i < (int)translucentid.size(); i++) {
 	
-		Point cen = objCentre.at(translucentid.at(i)); // get centre
-		double rad = objRadius.at(translucentid.at(i)); // get radius
+			Point cen = objCentre.at(translucentid.at(i).id); // get centre
+			double rad = objRadius.at(translucentid.at(i).id); // get radius
 		
-		// calculate signed distance from plane
-		double d = (norm.x*cen.x + norm.y*cen.y + norm.z*cen.z)/normMag;
-		translucentid.at(i).dist = d; // update vector
+			// calculate signed distance from plane
+			double d = (norm.x*cen.x + norm.y*cen.y + norm.z*cen.z)/normMag;
+			translucentid.at(i).dist = d + rad; // update vector
 	
-	}
+		}
 	
-	// now need to sort the vector, for this we use mergesort recursion
-	translucentid = mergeSort(translucentid);
+		// now need to sort the vector, for this we use mergesort recursion
+		translucentid = mergeSort(translucentid);
 	
-	// finally recollate ordered list of ids to draw
-	vector<int> order = opaqueid;
-	for(int i = 0; i < translucentid.size(); i++) 
-		order.push_back(translucentid.at(i).id);
-		
+		// finally recollate ordered list of ids to draw
+		for(int i = 0; i < (int)translucentid.size(); i++) 
+			order.push_back(translucentid.at(i).id);
+	} 
+
 	return order; // returning ordered list
 
+}
+
+/**
+   Changes the RGB colour of an object defined by id to the RGB provided
+   
+   @param id identifier of object whose colour we want to change
+   @param rgb colour we want to change the object to
+*/
+void vis::changeColour(int id, Point rgb) {
+	objColour.at(id).R = rgb.x;
+	objColour.at(id).G = rgb.y;
+	objColour.at(id).B = rgb.z;
+}
+
+/**
+   Changes the transparency value of object to alpha value provided
+	   
+   @param id identifier of object whose transparency we want to change
+   @param alpha alpha value we want to change object to
+*/
+void vis::changeTransparency(int id, double alpha) {
+	objColour.at(id).A = alpha;
 }
 
 /**
@@ -312,9 +335,20 @@ void vis::initializeGL() {
 	scaleFactor = 1.0; // initialise the zoom factor variable
 	pRot = yRot = 0.0; // initialise rotation variables
 	initColours(); // initialise colour vector
-	objColour.at(2) = colour.at(4);
-	objColour.at(3) = colour.at(2);
-	objColour.at(4) = colour.at(1);
+	changeColour(0, colour.at(1));
+	changeTransparency(0, 0.2);
+	changeColour(1, colour.at(0));
+	changeTransparency(1, 0.4);
+	changeColour(2, colour.at(2));
+	changeTransparency(2, 0.3);
+	changeColour(3, colour.at(3));
+	changeTransparency(3, 0.34);
+	changeColour(4, colour.at(6));
+	changeTransparency(4, 0.3);
+	changeColour(5, colour.at(5));
+	changeTransparency(5, 0.28);
+	changeColour(7, colour.at(4));
+	changeTransparency(7, 0.3);
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
@@ -363,6 +397,9 @@ void vis::resizeGL(int w, int h) {
 */ 
 void vis::paintGL() {
 
+	// create the render order
+	vector<int> renderOrder = sphereOrder();
+
 	// clearing screen first
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	// initialise standard surface properties and light position for all objects
@@ -370,13 +407,13 @@ void vis::paintGL() {
 	glLightfv(GL_LIGHT0, GL_POSITION, fPosition); // setting light position
 	
 	// draw objects from vectors, specify surface properties from vector
-	for(int i = 0; i < (int)objCentre.size(); i++) {
+	for(int i = 0; i < (int)renderOrder.size(); i++) {
 		// get colour from vector and set properties
-		RGBA col = objColour.at(i); 
+		RGBA col = objColour.at(renderOrder.at(i));
 		glMaterialfv(GL_FRONT, GL_AMBIENT, (GLfloat*)&col);
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, (GLfloat*)&col);
 		// draw the sphere
-		drawSphere(objCentre.at(i), objRadius.at(i));
+		drawSphere(objCentre.at(renderOrder.at(i)), objRadius.at(renderOrder.at(i)));
 	}
 	
 	// draw frame and render to screen

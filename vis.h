@@ -37,7 +37,7 @@ struct objSort {
 	int id;
 	double dist;
 
-}
+};
 
 // defining our visualisation class as subclass of QGLWidget
 class vis: public QGLWidget {
@@ -96,6 +96,22 @@ class vis: public QGLWidget {
 	*/
 	vector<int> sphereOrder();
 	
+	/**
+	   Changes the RGB colour of an object defined by id to the RGB provided
+	   
+	   @param id identifier of object whose colour we want to change
+	   @param rgb colour we want to change the object to
+	*/
+	void changeColour(int id, Point rgb);
+	
+	/**
+	   Changes the transparency value of object to alpha value provided
+	   
+	   @param id identifier of object whose transparency we want to change
+	   @param alpha alpha value we want to change object to
+	*/
+	void changeTransparency(int id, double alpha);
+	
 	private:
 	
 	// holds the coordinate points for a standard sphere
@@ -111,7 +127,7 @@ class vis: public QGLWidget {
 	vector<RGBA> objColour;
 	
 	// holds the RGB colour options for objects
-	vector<RGBA> colour;
+	vector<Point> colour;
 	
 	// holds the starting position when the mouse is clicked
 	QPoint startPos;

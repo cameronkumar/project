@@ -30,6 +30,15 @@ struct RGBA {
 
 };
 
+// defines a structure that contains an id and distance from plane value
+// used for sorting translucent objects
+struct objSort {
+
+	int id;
+	double dist;
+
+}
+
 // defining our visualisation class as subclass of QGLWidget
 class vis: public QGLWidget {
 
@@ -70,6 +79,15 @@ class vis: public QGLWidget {
 	   populate the colours vector with a selection of RGB values
 	*/
 	void initColours();
+	
+	/**
+	   Recursive function to be used for merge sorting of translucent spheres
+	   
+	   @param vec vector to sort (structure of ints and doubles)
+	   @return sorted vector (structure of ints and doubles)
+	*/
+	vector<objSort> mergeSort(vector<objSort>);
+	
 	
 	/**
 	   orders the spheres based on opacity and which is closest to the camera

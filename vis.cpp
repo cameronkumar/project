@@ -190,13 +190,65 @@ void vis::initColours() {
 }
 
 /**
+   Recursive function to be used for merge sorting of translucent spheres
+   
+   @param vec vector to sort (structure of ints and doubles)
+   @return sorted vector (structure of ints and doubles)
+*/
+vector<objSort> vis::mergeSort(vector<objSort> vec) {
+	
+	// terminates when only 1 element in list
+	if(vec.size() == 1)
+		return vec;
+	else {
+	
+		// determine middle position and left and right vectors
+		vector<objSort>::iterator mid = vec.begin() + (vec.size()/2);
+		vector<objSort> l(vec.begin(), middle);
+		vector<objSort> r(middle, vec.end());
+		
+		// merge sort each component (recursive step)
+		l = mergeSort(l);
+		r = mergeSort(r);
+		
+		// sort the left and right vectors into an order
+		vector<objSort> sorted; // will hold sorted values
+		int iL = 0, iR = 0; // increment variables for left and right loops
+		
+		// adding sorted objects to the sorted vector by comparison until end of one vector reached
+		while(iL < (int)l.size() && iR < (int)r.size()) {
+			if(l[iL].dist < r[iR].dist) {
+				sorted.push_back(l[iL]);
+				iL++;
+			} else {
+				sorted.push_back(r[iR]);
+				iR++;
+			}
+		}
+		
+		// now adding remaining contents of vectors to sroted list
+		while(iL < (int)l.size()) {
+			sorted.push_back(l[iL]);
+			iL++;
+		}
+		while(iR < (int)r.size()) {
+			sorted.push_back(r[iR]);
+			iR++;
+		}
+		
+		return sorted; // returning the completed sorted vector
+	}
+	
+}
+
+/**
    orders the spheres based on opacity and which is closest to the camera
 	   
    @return returns a vector of integers representing the order of furthest to nearest spheres
 */
 vector<int> vis::sphereOrder() {
 	
-	map<int, double> translucentid; // will hold id and distance of translucent objects
+	vector<objSort> translucentid; // will hold id and distance of translucent objects
 	vector<int> opaqueid; // will hold id of opaque objects
 	
 	// need to seperate opaque from translucent objects first before we sort translucents
@@ -204,11 +256,10 @@ vector<int> vis::sphereOrder() {
 		if(objColour.at(i).A == 1.0)
 			opaqueid.push_back(i);
 		else
-			translucentid.insert(pair<int, double>(i, 0.0));
+			translucentid.push_back({i, 0.0});
 	}
 	
 	// to sort translucent objects, first calculate the distance from camera
-	vector<double> dist; // will store distance from plane
 	// we will work out order based on point-plane distance from the cameras
 	// parallel plane at origin, need to work out plane normal first
 	vector<Point> norm = {(sin((yRot*M_PI)/180.0))*cos((pRot*M_PI)/180.0), // x
@@ -220,16 +271,26 @@ vector<int> vis::sphereOrder() {
 	norm.y = norm.y / normMag; // normalizing y
 	norm.z = norm.z / normMag; // normalizing z
 	
-	int i = 0; // will be used to lookup values
-	for(map<int, double>::iterator it = translucentid.begin(); it = translucentid.end(); it++) {
+	for(int i = 0; i < (int)objCentre.size(); i++) {
+	
 		Point cen = objCentre.at(translucentid.at(i)); // get centre
 		double rad = objRadius.at(translucentid.at(i)); // get radius
 		
 		// calculate signed distance from plane
 		double d = (norm.x*cen.x + norm.y*cen.y + norm.z*cen.z)/normMag;
-		it->second = d; // update the map
-		i++; // manually iterate integer counter
+		translucentid.at(i).dist = d; // update vector
+	
 	}
+	
+	// now need to sort the vector, for this we use mergesort recursion
+	translucentid = mergeSort(translucentid);
+	
+	// finally recollate ordered list of ids to draw
+	vector<int> order = opaqueid;
+	for(int i = 0; i < translucentid.size(); i++) 
+		order.push_back(translucentid.at(i).id);
+		
+	return order; // returning ordered list
 
 }
 

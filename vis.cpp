@@ -194,7 +194,7 @@ void vis::initColours() {
    @param vec vector to sort (structure of ints and doubles)
    @return sorted vector (structure of ints and doubles)
 */
-vector<objSort> vis::mergeSort(vector<objSort> vec) {
+vector<idDist> vis::mergeSort(vector<idDist> vec) {
 	
 	// terminates when only 1 element in list
 	if(vec.size() == 1)
@@ -202,16 +202,16 @@ vector<objSort> vis::mergeSort(vector<objSort> vec) {
 	else {
 	
 		// determine middle position and left and right vectors
-		vector<objSort>::iterator mid = vec.begin() + (vec.size()/2);
-		vector<objSort> l(vec.begin(), mid);
-		vector<objSort> r(mid, vec.end());
+		vector<idDist>::iterator mid = vec.begin() + (vec.size()/2);
+		vector<idDist> l(vec.begin(), mid);
+		vector<idDist> r(mid, vec.end());
 		
 		// merge sort each component (recursive step)
 		l = mergeSort(l);
 		r = mergeSort(r);
 		
 		// sort the left and right vectors into an order
-		vector<objSort> sorted; // will hold sorted values
+		vector<idDist> sorted; // will hold sorted values
 		int iL = 0, iR = 0; // increment variables for left and right loops
 		
 		// adding sorted objects to the sorted vector by comparison until end of one vector reached
@@ -247,7 +247,7 @@ vector<objSort> vis::mergeSort(vector<objSort> vec) {
 */
 vector<int> vis::sphereOrder() {
 	
-	vector<objSort> translucentid; // will hold id and distance of translucent objects
+	vector<idDist> translucentid; // will hold id and distance of translucent objects
 	vector<int> opaqueid; // will hold id of opaque objects
 	
 	// need to seperate opaque from translucent objects first before we sort translucents
@@ -255,7 +255,7 @@ vector<int> vis::sphereOrder() {
 		if(objColour.at(i).A == 1.0)
 			opaqueid.push_back(i);
 		else
-			translucentid.push_back((objSort){i, 0.0});
+			translucentid.push_back((idDist){i, 0.0});
 	}
 	
 	// initialise vector that will store final order list, opaque objects rendered first
@@ -293,6 +293,54 @@ vector<int> vis::sphereOrder() {
 
 	return order; // returning ordered list
 
+}
+
+/**
+   Returns human readable string detailing all intersections for an object
+	   
+   @param id index of object to calculate intersections for
+   @param inter list of intersecting objects
+   @return human readable string containing intersection details
+*/
+string vis::getIntersectionString(int id, vector<idDist> inter) {
+
+}
+
+/**
+   Returns a string detailing all intersections and tangents for specified object
+	   
+   @param id identifier of object we will calculate intersections for
+   @return string in human readable form of intersection details
+*/
+string vis::intersectsWith(int id) {
+	
+	// get the object's centre and radius
+	Point c = objCentre.at(id); 
+	double r = objRadius.at(id);
+	// create a vector to store details of which objects intersect
+	vector<idDist> inter;
+	
+	// this for loop calculates which intersections occur
+	for(int i = 0; i < (int)objCentre.size(); i++) {
+		if(i != id) { // don't want to compare with self
+		
+			// get centre and radius for current i
+			Point iC = objCentre.at(i);
+			double iR = objRadius.at(i);
+			
+			// calculate length between spheres and compare to sum of radii
+			double length = sqrt(pow(c.x-iC.x,2) + pow(c.y-iC.y,2) + pow(c.z-iC.z,2));
+			double overlap = (r+iR) - length; 
+			
+			// determining if an intersection occurs, if so added to vector
+			if(overlap >= 0.0)
+				inter.push_back((idDist){i, overlap});
+					
+		}	
+	}
+	
+	// now to create string to be returned to user
+	return(getIntersectionString(int id, vector<idDist> inter)); 
 }
 
 /**
@@ -335,20 +383,11 @@ void vis::initializeGL() {
 	scaleFactor = 1.0; // initialise the zoom factor variable
 	pRot = yRot = 0.0; // initialise rotation variables
 	initColours(); // initialise colour vector
-	changeColour(0, colour.at(1));
-	changeTransparency(0, 0.2);
-	changeColour(1, colour.at(0));
-	changeTransparency(1, 0.4);
 	changeColour(2, colour.at(2));
-	changeTransparency(2, 0.3);
-	changeColour(3, colour.at(3));
-	changeTransparency(3, 0.34);
-	changeColour(4, colour.at(6));
-	changeTransparency(4, 0.3);
-	changeColour(5, colour.at(5));
-	changeTransparency(5, 0.28);
-	changeColour(7, colour.at(4));
-	changeTransparency(7, 0.3);
+	changeColour(3, colour.at(1));
+	changeTransparency(2, 0.4);
+	changeTransparency(3, 0.7);
+
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	

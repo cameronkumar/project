@@ -31,8 +31,8 @@ struct RGBA {
 };
 
 // defines a structure that contains an id and distance from plane value
-// used for sorting translucent objects
-struct objSort {
+// used for sorting translucent objects and storing intersection details
+struct idDist {
 
 	int id;
 	double dist;
@@ -86,7 +86,7 @@ class vis: public QGLWidget {
 	   @param vec vector to sort (structure of ints and doubles)
 	   @return sorted vector (structure of ints and doubles)
 	*/
-	vector<objSort> mergeSort(vector<objSort>);
+	vector<idDist> mergeSort(vector<idDist>);
 	
 	
 	/**
@@ -111,6 +111,23 @@ class vis: public QGLWidget {
 	   @param alpha alpha value we want to change object to
 	*/
 	void changeTransparency(int id, double alpha);
+	
+	/**
+	   Returns human readable string detailing all intersections for an object
+	   
+	   @param id index of object to calculate intersections for
+	   @param inter list of intersecting objects
+	   @return human readable string containing intersection details
+	*/
+	string getIntersectionString(int id, vector<idDist> inter); 
+	
+	/**
+	   Returns a string detailing all intersections and tangents for specified object
+	   
+	   @param id identifier of object we will calculate intersections for
+	   @return string in human readable form of intersection details
+	*/
+	string intersectsWith(int id);
 	
 	private:
 	

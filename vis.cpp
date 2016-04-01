@@ -303,7 +303,41 @@ vector<int> vis::sphereOrder() {
    @return human readable string containing intersection details
 */
 string vis::getIntersectionString(int id, vector<idDist> inter) {
-
+	
+	string sInter = ""; // will hold human readable intersection details
+	
+	if((int)inter.size() == 0) // case of no intersections
+		sInter = "Sphere " + id + " does not intersect any other objects!";
+	else { 
+		// loop through all intersections and append string with information
+		for(int i = 0; i < (int)inter.size(); i++) {
+		
+			// calculate normalized vector from main object to intersecting object
+			Point idCen = objCentre.at(id);
+			Point iCen = objCentre.at(i);
+			Point vec = (Point){iCen.x-idCen.x, iCen.y-idCen.y, iCen.z-idCen.z};
+			double vecMag = sqrt(pow(vec.x,2) + pow(vec.y,2) + pow(vec.z,2));
+			vec = (Point){vec.x/vecMag, vec.y/vecMag, vec.z/vecMag};
+		
+			if(inter.at(i).dist == 0.0) { // tangent case
+			
+				// calculating tangent point
+				double rad = objRaius.at(id);
+				Point pTangent = (Point){idCen.x+rad*vec.x, idCen.y+rad*vec.y, idCen.z+rad*vec.z};
+				// write to intersection string
+				sInter += "Sphere " + id + " is tangent to sphere " + inter.at(i).id + " at point ("
+				       + pTangent.x + ", " + pTangent.y + ", " + pTangent.z + ")\n";
+				       
+				
+			} else { // intersection case
+			
+			}
+		
+		}	
+	}
+	
+	return(sInter);
+	
 }
 
 /**

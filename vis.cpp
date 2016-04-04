@@ -13,6 +13,9 @@
 #include <cmath> // for power & other math funcs
 #include <iostream>
 #include <fstream> // for file handling
+#include <string>
+#include <sstream>
+#include <iomanip>
 
 #include <QDebug> // USED FOR DEBUGGING
 
@@ -296,88 +299,6 @@ vector<int> vis::sphereOrder() {
 }
 
 /**
-   Returns human readable string detailing all intersections for an object
-	   
-   @param id index of object to calculate intersections for
-   @param inter list of intersecting objects
-   @return human readable string containing intersection details
-*/
-string vis::getIntersectionString(int id, vector<idDist> inter) {
-	
-	string sInter = ""; // will hold human readable intersection details
-	
-	if((int)inter.size() == 0) // case of no intersections
-		sInter = "Sphere " + id + " does not intersect any other objects!";
-	else { 
-		// loop through all intersections and append string with information
-		for(int i = 0; i < (int)inter.size(); i++) {
-		
-			// calculate normalized vector from main object to intersecting object
-			Point idCen = objCentre.at(id);
-			Point iCen = objCentre.at(i);
-			Point vec = (Point){iCen.x-idCen.x, iCen.y-idCen.y, iCen.z-idCen.z};
-			double vecMag = sqrt(pow(vec.x,2) + pow(vec.y,2) + pow(vec.z,2));
-			vec = (Point){vec.x/vecMag, vec.y/vecMag, vec.z/vecMag};
-		
-			if(inter.at(i).dist == 0.0) { // tangent case
-			
-				// calculating tangent point
-				double rad = objRaius.at(id);
-				Point pTangent = (Point){idCen.x+rad*vec.x, idCen.y+rad*vec.y, idCen.z+rad*vec.z};
-				// write to intersection string
-				sInter += "Sphere " + id + " is tangent to sphere " + inter.at(i).id + " at point ("
-				       + pTangent.x + ", " + pTangent.y + ", " + pTangent.z + ")\n";
-				       
-				
-			} else { // intersection case
-			
-			}
-		
-		}	
-	}
-	
-	return(sInter);
-	
-}
-
-/**
-   Returns a string detailing all intersections and tangents for specified object
-	   
-   @param id identifier of object we will calculate intersections for
-   @return string in human readable form of intersection details
-*/
-string vis::intersectsWith(int id) {
-	
-	// get the object's centre and radius
-	Point c = objCentre.at(id); 
-	double r = objRadius.at(id);
-	// create a vector to store details of which objects intersect
-	vector<idDist> inter;
-	
-	// this for loop calculates which intersections occur
-	for(int i = 0; i < (int)objCentre.size(); i++) {
-		if(i != id) { // don't want to compare with self
-		
-			// get centre and radius for current i
-			Point iC = objCentre.at(i);
-			double iR = objRadius.at(i);
-			
-			// calculate length between spheres and compare to sum of radii
-			double length = sqrt(pow(c.x-iC.x,2) + pow(c.y-iC.y,2) + pow(c.z-iC.z,2));
-			double overlap = (r+iR) - length; 
-			
-			// determining if an intersection occurs, if so added to vector
-			if(overlap >= 0.0)
-				inter.push_back((idDist){i, overlap});
-					
-		}	
-	}
-	
-	// now to create string to be returned to user
-	return(getIntersectionString(int id, vector<idDist> inter)); 
-}
-
-/**
    Changes the RGB colour of an object defined by id to the RGB provided
    
    @param id identifier of object whose colour we want to change
@@ -400,6 +321,129 @@ void vis::changeTransparency(int id, double alpha) {
 }
 
 /**
+   Returns human readable string detailing all intersections for an object
+	   
+   @param id index of object to calculate intersections for
+   @param inter list of intersecting objects
+   @return human readable string containing intersection details
+*/
+string vis::getIntersectionString(int id, vector<idOverVecLen> inter) {
+	
+	stringstream sInter; // will hold human readable intersection details
+	sInter << setprecision(4); // setting precision for doubles
+	// get the centre coordinates and radius for calculations
+	Point cen = objCentre.at(id); 
+	double rad = objRadius.at(id);
+	
+	if((int)inter.size() == 0) // case of no intersections
+		sInter << "Sphere " << id << " does not intersect any other objects!\n";
+	else { 
+		// loop through all intersections and append string with information
+		for(int i = 0; i < (int)inter.size(); i++) {
+		
+			// read intersection details from vector for calculations
+			idOverVecLen currentInt = inter.at(i);
+		
+			if(inter.at(i).over == 0.0) { // tangent case
+			
+				// calculating tangent point
+				Point pTangent = (Point){cen.x+rad*currentInt.vec.x, // x
+						 	 cen.y+rad*currentInt.vec.y, // y
+						 	 cen.z+rad*currentInt.vec.z};// z
+				// write to intersection string
+				sInter << "Sphere " << id << " is tangent to sphere " << currentInt.id << " at point ("
+				       << pTangent.x << ", " << pTangent.y << ", " << pTangent.z << ")\n";
+				// add tangent to intersection vector for drawing
+				coi.push_back((intDraw){pTangent, 0.0, id, i});
+				       
+				
+			} else { // intersection case
+				
+				// calculate centre of circle of intersection, first calculate distance to coi
+				double coiDist = rad - (currentInt.over / 2);
+				Point coiCen = (Point){cen.x + coiDist*currentInt.vec.x, // x
+						       cen.y + coiDist*currentInt.vec.y, // y
+						       cen.z + coiDist*currentInt.vec.z};// z
+				// calculate radius of circle
+				double coiRad = rad*sin(acos(coiDist/rad));
+				// write to intersection string
+				sInter << "Sphere " << id << " intersects sphere " << currentInt.id 
+				       << " with circle of intersection located about (" << coiCen.x << ", " 
+				       << coiCen.y << ", " << coiCen.z << ") with radius " << coiRad << "\n";	
+				// add intersection to intersection vector for drawing
+				coi.push_back((intDraw){coiCen, coiRad, id, i});			
+				
+			}
+		
+		}	
+	}
+	
+	return(sInter.str()); // return string stream string
+	
+}
+
+/**
+   Returns a string detailing all intersections and tangents for specified object
+	   
+   @param id identifier of object we will calculate intersections for
+   @return string in human readable form of intersection details
+*/
+string vis::intersectsWith(int id) {
+	
+	// error check to ensure valid id specified
+	if(id < 0 || id >= (int)objCentre.size())
+		return("Error! ID specified for intersection check out of range!\n");
+	else {
+		// get the object's centre and radius
+		Point c = objCentre.at(id); 
+		double r = objRadius.at(id);
+		// create a vector to store details of which objects intersect
+		vector<idOverVecLen> inter;
+	
+		// this for loop calculates which intersections occur
+		for(int i = 0; i < (int)objCentre.size(); i++) {
+			if(i != id) { // don't want to compare with self
+		
+				// get centre and radius for current i
+				Point iC = objCentre.at(i);
+				double iR = objRadius.at(i);
+			
+				// calculate length between spheres, normalize direction vector and compare to sum of radii
+				Point cenVec = (Point){c.x - iC.x, c.y - iC.y, c.z - iC.z};
+				double cenVecLength = sqrt(pow(cenVec.x,2) + pow(cenVec.y,2) + pow(cenVec.z,2));
+				cenVec = (Point){cenVec.x/cenVecLength, cenVec.y/cenVecLength, cenVec.z/cenVecLength};
+				double overlap = (r+iR) - cenVecLength; 
+			
+				// determining if an intersection occurs, if so added to vector
+				if(overlap >= 0.0)
+					inter.push_back((idOverVecLen){i, overlap, cenVec, cenVecLength});
+					
+			}	
+		}
+	
+		// now to create string to be returned to user
+		return(getIntersectionString(id, inter)); 
+	}
+}
+
+/** 
+   Draws the intersections saved in the global variable coi
+*/
+void vis::drawIntersections() {
+	
+	for(int i = 0; i < (int)coi.size(); i++) {
+		
+		// get details of circle of intersection from vector
+		intDraw currentCoi = coi.at(i);
+		
+		// tangent case, we draw a very small circle to indicate tangent
+		if
+		
+	}
+	
+}
+
+/**
    initialises environment for OpenGL rendering when instance called
 */
 void vis::initializeGL() {
@@ -417,11 +461,6 @@ void vis::initializeGL() {
 	scaleFactor = 1.0; // initialise the zoom factor variable
 	pRot = yRot = 0.0; // initialise rotation variables
 	initColours(); // initialise colour vector
-	changeColour(2, colour.at(2));
-	changeColour(3, colour.at(1));
-	changeTransparency(2, 0.4);
-	changeTransparency(3, 0.7);
-
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
@@ -442,6 +481,7 @@ void vis::initializeGL() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
+	cout << intersectsWith(1);
 }
 
 /**

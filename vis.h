@@ -31,11 +31,33 @@ struct RGBA {
 };
 
 // defines a structure that contains an id and distance from plane value
-// used for sorting translucent objects and storing intersection details
+// used for sorting translucent objects 
 struct idDist {
 
 	int id;
 	double dist;
+
+};
+
+// defines a structure that contains an id, overlap distance, direction vector and length
+// used for sorting storing intersection details
+struct idOverVecLen {
+	
+	int id;
+	double over;
+	Point vec;
+	double len;	
+	
+};
+
+// structure to store data about a particular intersection, including centre of intersection details
+// and the ids of the two spheres involved. Used for drawing intersections
+struct intDraw {
+
+	Point cen;
+	double rad;
+	int id1;
+	int id2;
 
 };
 
@@ -119,7 +141,7 @@ class vis: public QGLWidget {
 	   @param inter list of intersecting objects
 	   @return human readable string containing intersection details
 	*/
-	string getIntersectionString(int id, vector<idDist> inter); 
+	string getIntersectionString(int id, vector<idOverVecLen> inter); 
 	
 	/**
 	   Returns a string detailing all intersections and tangents for specified object
@@ -128,6 +150,11 @@ class vis: public QGLWidget {
 	   @return string in human readable form of intersection details
 	*/
 	string intersectsWith(int id);
+	
+	/** 
+	   Draws the intersections saved in the global variable coi
+	*/
+	void drawIntersections();
 	
 	private:
 	
@@ -158,6 +185,8 @@ class vis: public QGLWidget {
 	// holds the current rotation about the pitch axis, used to prevent over rotation
 	double pRot;
 	
+	// holds information about the centre of circle of intersections for intersections to be drawn
+	vector<intDraw> coi;
 
 	protected:
 	

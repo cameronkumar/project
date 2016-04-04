@@ -437,26 +437,46 @@ void vis::drawCircle(intDraw circ) {
 	Point id1Cen = objCentre.at(circ.id1);
 	Point id2Cen = objCentre.at(circ.id2);
 	Point dirVec = (Point){id2Cen.x - id1Cen.x, id2Cen.y - id1Cen.y, id2Cen.z - id1Cen.z};
-	// working out ratio to split vector into two to find orthogonal vector
-	double ratio = dirVec.x / (dirVec.x+dirVec.y);
-	Point dirVecX = (Point){dirVec.x, 0.0, dirVec.z*ratio};
-	Point dirVecY = (Point){0.0, dirVec.y, dirVec.z*(1.0-ratio)};
-	// now need to do a cross product between x and y vectors for orthogonal
-	Point coiVec = (Point){dirVecX.y*dirVecY.z - dirVecY.y*dirVecX.z,
+	// declare coiVec to store the direction vector of circle of intersection
+	Point coiVec;
+	
+	// several options based on how many directions are non zero to work out coiVec
+	if(dirVec.x != 0.0 && dirVec.y != 0.0 && dirVec.z != 0.0) { // all 3 dir'ns non zero
+		// working out ratio to split vector into two to find orthogonal vector
+		double ratio = dirVec.x / (dirVec.x+dirVec.y);
+		Point dirVecX = (Point){dirVec.x, 0.0, dirVec.z*ratio};
+		Point dirVecY = (Point){0.0, dirVec.y, dirVec.z*(1.0-ratio)};
+		// now need to do a cross product between x and y vectors for orthogonal
+		coiVec = (Point){dirVecX.y*dirVecY.z - dirVecY.y*dirVecX.z,
 			       -(dirVecX.x*dirVecY.z - dirVecY.x*dirVecX.z),
 			       dirVecX.x*dirVecY.y - dirVecY.x*dirVecX.y};
-	// now to normalize coiVec
-	double nCoiVec = sqrt(pow(coiVec.x,2) + pow(coiVec.y,2) + pow(coiVec.z,2));
-	coiVec = (Point){coiVec.x/nCoiVec, coiVec.y/nCoiVec, coiVec.z/nCoiVec};
+		// now to normalize coiVec
+		double nCoiVec = sqrt(pow(coiVec.x,2) + pow(coiVec.y,2) + pow(coiVec.z,2));
+		coiVec = (Point){coiVec.x/nCoiVec, coiVec.y/nCoiVec, coiVec.z/nCoiVec};
+	} else if(dirVec.x != 0.0 && dirVec.y != 0.0) // x and y direction case
+		coiVec = (Point){0.0, 0.0, 1.0}; // z direction coiVec
+	else if(dirVec.y != 0.0 && dirVec.z != 0.0) // z and y direction case
+		coiVec = (Point){1.0, 0.0, 0.0}; // x direction coiVec
+	else if(dirVec.x != 0.0 && dirVec.z != 0.0) // x and z direction case
+		coiVec = (Point){0.0, 1.0, 0.0}; // y direction coiVec
+	else if(dirVec.y == 0) // just x or just z case
+		coiVec = (Point){0.0, 1.0, 0.0}; // y dir'n coiVec
+	else // y non-zero case
+		coiVec = (Point){0.0, 0.0, 1.0}; // z dir'n coiVec
 		
+	cout << "(" << coiVec.x << ", " << coiVec.y << ", " << coiVec.z << ")\n";
+	
+	
 	// draw circle as GL_POLYGON by iterating to points round a circle
 	glBegin(GL_POLYGON);
 	for(int i = 0; i < CIRCLE_POINTS; i++) {		
 		
-		double angle = (i/CIRCLE_POINTS)*2*M_PI; // calc current angle
-		
+		double angle = ((double)i/(double)CIRCLE_POINTS)*2*M_PI; // calc current angle
+		//cout << cos(angle) << "\n";
+			
 		// vector from centre to circumfrence
 		Point p = (Point){cos(angle)*coiVec.x, cos(angle)*coiVec.y, sin(angle)*coiVec.z};
+		//cout << "(" << p.x << ", " << p.y << ", " << p.z << ")\n";
 		
 		// add point to GL_POLYGON
 		glNormal3fv((GLfloat*)&p);

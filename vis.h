@@ -151,6 +151,14 @@ class vis: public QGLWidget {
 	*/
 	string intersectsWith(int id);
 	
+	/**
+	   Draws a circle given a specified centre and radius
+   
+   	   @param cen centre of circle to draw
+   	   @param rad radius of circle to draw
+	*/
+	void drawCircle(intDraw circ);
+	
 	/** 
 	   Draws the intersections saved in the global variable coi
 	*/

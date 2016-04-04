@@ -426,6 +426,44 @@ string vis::intersectsWith(int id) {
 	}
 }
 
+/**
+   Draws a circle given a specified circle of intersection
+   
+   @param circ information about circle to draw
+*/
+void vis::drawCircle(intDraw circ) {
+	
+	// get the direction vector to calculate orientation of circle
+	Point id1Cen = objCentre.at(id1);
+	Point id2Cen = objCentre.at(id2);
+	Point dirVec = (Point){id2Cen.x - id1Cen.x, id2Cen.y - id1Cen.y, id2Cen.z - id1Cen.z};
+	// working out ratio to split vector into two to find orthogonal vector
+	double ratio = dirVec.x / (dirVec.x+dirVec.y);
+	Point dirVecX = (Point){dirVec.x, 0.0, dirVec.z*ratio};
+	Point dirVecY = (Point){0.0, dirVec.y, dirVec.z*(1.0-ratio)};
+	// now need to do a cross product between x and y vectors for orthogonal
+	Point coiVec = (dirVecX.y*dirVecY.z - dirVecY.y*dirVecX.z,
+			-(dirVecX.x*dirVecY.z - dirVecY.x*dirVecX.z),
+			dirVecX.x*dirVecY.y - dirVecY.x*dirVecX.y);
+	
+	// draw circle as GL_POLYGON by iterating to points round a circle
+	glBegin(GL_POLYGON);
+	for(int i = 0; i < CIRCLE_POINTS; i++) {		
+		
+		double angle = (i/CIRCLE_POINTS)*2*M_PI; // calc current angle
+		
+		// vector from centre to circumfrence
+		Point p = (Point){cos(angle)*coiVec.x, cos(angle)*coiVec.y, sin(angle)*coiVec.z};
+		
+		// add point to GL_POLYGON
+		glNormal3fv((GLfloat*)&p);
+		glVertex3d(circ.cen.x + p.x, circ.cen.y + p.y, circ.cen.z + p.z);
+		
+	}
+	glEnd();
+	
+}
+
 /** 
    Draws the intersections saved in the global variable coi
 */
@@ -434,10 +472,10 @@ void vis::drawIntersections() {
 	for(int i = 0; i < (int)coi.size(); i++) {
 		
 		// get details of circle of intersection from vector
-		intDraw currentCoi = coi.at(i);
+		intDraw iCoi = coi.at(i);
 		
 		// tangent case, we draw a very small circle to indicate tangent
-		if
+		if(iCoi.rad == 0.0)
 		
 	}
 	

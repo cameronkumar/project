@@ -145,7 +145,7 @@ int vis::setData(char* objData) {
 					objCentre.push_back((Point){x, y, z}); 
 					objRadius.push_back(rad);
 					// set default colour and transparency values
-					objColour.push_back((RGBA){1.0, 0.0, 0.0, 1.0});
+					objColour.push_back((RGBA){1.0, 0.0, 0.0, 0.4});
 				
 				} else { // radius error
 					cout << "ERROR: line " << i << " of file is invalid and will be ignored!\n";
@@ -434,18 +434,21 @@ string vis::intersectsWith(int id) {
 void vis::drawCircle(intDraw circ) {
 	
 	// get the direction vector to calculate orientation of circle
-	Point id1Cen = objCentre.at(id1);
-	Point id2Cen = objCentre.at(id2);
+	Point id1Cen = objCentre.at(circ.id1);
+	Point id2Cen = objCentre.at(circ.id2);
 	Point dirVec = (Point){id2Cen.x - id1Cen.x, id2Cen.y - id1Cen.y, id2Cen.z - id1Cen.z};
 	// working out ratio to split vector into two to find orthogonal vector
 	double ratio = dirVec.x / (dirVec.x+dirVec.y);
 	Point dirVecX = (Point){dirVec.x, 0.0, dirVec.z*ratio};
 	Point dirVecY = (Point){0.0, dirVec.y, dirVec.z*(1.0-ratio)};
 	// now need to do a cross product between x and y vectors for orthogonal
-	Point coiVec = (dirVecX.y*dirVecY.z - dirVecY.y*dirVecX.z,
-			-(dirVecX.x*dirVecY.z - dirVecY.x*dirVecX.z),
-			dirVecX.x*dirVecY.y - dirVecY.x*dirVecX.y);
-	
+	Point coiVec = (Point){dirVecX.y*dirVecY.z - dirVecY.y*dirVecX.z,
+			       -(dirVecX.x*dirVecY.z - dirVecY.x*dirVecX.z),
+			       dirVecX.x*dirVecY.y - dirVecY.x*dirVecX.y};
+	// now to normalize coiVec
+	double nCoiVec = sqrt(pow(coiVec.x,2) + pow(coiVec.y,2) + pow(coiVec.z,2));
+	coiVec = (Point){coiVec.x/nCoiVec, coiVec.y/nCoiVec, coiVec.z/nCoiVec};
+		
 	// draw circle as GL_POLYGON by iterating to points round a circle
 	glBegin(GL_POLYGON);
 	for(int i = 0; i < CIRCLE_POINTS; i++) {		
@@ -457,7 +460,7 @@ void vis::drawCircle(intDraw circ) {
 		
 		// add point to GL_POLYGON
 		glNormal3fv((GLfloat*)&p);
-		glVertex3d(circ.cen.x + p.x, circ.cen.y + p.y, circ.cen.z + p.z);
+		glVertex3d(circ.cen.x + circ.rad*p.x, circ.cen.y + circ.rad*p.y, circ.cen.z + circ.rad*p.z);
 		
 	}
 	glEnd();
@@ -474,8 +477,12 @@ void vis::drawIntersections() {
 		// get details of circle of intersection from vector
 		intDraw iCoi = coi.at(i);
 		
-		// tangent case, we draw a very small circle to indicate tangent
-		if(iCoi.rad == 0.0)
+		// tangent case, we draw a very small (proportionally) circle to indicate tangent
+		if(iCoi.rad == 0.0) {
+			iCoi.rad = objRadius.at(iCoi.id1)*0.005;
+			drawCircle(iCoi);
+		} else // intersection case
+			drawCircle(iCoi);
 		
 	}
 	
@@ -556,6 +563,12 @@ void vis::paintGL() {
 	// initialise standard surface properties and light position for all objects
 	GLfloat fPosition[4] = {1.0, 1.0, 1.0, 0.0}; // light position
 	glLightfv(GL_LIGHT0, GL_POSITION, fPosition); // setting light position
+	
+	// drawing intersections first, draw them solid white
+	RGBA white = (RGBA){1.0, 1.0, 1.0, 1.0};
+	glMaterialfv(GL_FRONT, GL_AMBIENT, (GLfloat*)&white);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, (GLfloat*)&white);
+	drawIntersections();
 	
 	// draw objects from vectors, specify surface properties from vector
 	for(int i = 0; i < (int)renderOrder.size(); i++) {

@@ -50,11 +50,11 @@ struct idOverVecLen {
 	
 };
 
-// structure to store data about a particular intersection, including centre of intersection details
-// and the ids of the two spheres involved. Used for drawing intersections
+// structure to store data about a particular intersection, including centre of intersection details,
+// vector between the two spheres, and the ids of the two spheres involved. Used for drawing intersections
 struct intDraw {
 
-	Point cen;
+	Point cen, vec;
 	double rad;
 	int id1;
 	int id2;

@@ -353,25 +353,30 @@ string vis::getIntersectionString(int id, vector<idOverVecLen> inter) {
 				// write to intersection string
 				sInter << "Sphere " << id << " is tangent to sphere " << currentInt.id << " at point ("
 				       << pTangent.x << ", " << pTangent.y << ", " << pTangent.z << ")\n";
-				// add tangent to intersection vector for drawing
-				coi.push_back((intDraw){pTangent, 0.0, id, i});
+				// add tangent to intersection vector for drawing, relatively small radius
+				coi.push_back((intDraw){pTangent, currentInt.vec, objRadius.at(i)*0.05, id, i});
 				       
 				
 			} else { // intersection case
 				
-				// calculate centre of circle of intersection, first calculate distance to coi
-				double coiDist = rad - (currentInt.over / 2);
-				Point coiCen = (Point){cen.x + coiDist*currentInt.vec.x, // x
-						       cen.y + coiDist*currentInt.vec.y, // y
-						       cen.z + coiDist*currentInt.vec.z};// z
-				// calculate radius of circle
-				double coiRad = rad*sin(acos(coiDist/rad));
+				// get radius of intersecting sphere
+				double iRad = objRadius.at(currentInt.id);
+				// now calculate the distance from the centre of sphere i to coi 
+				double coiDist = pow(currentInt.len, 2) - (pow(iRad,2) - pow(rad,2));
+				coiDist = coiDist/(2*currentInt.len);
+				// also calculate the radius using the distance calculation as this is a part of the equation
+				double coiRad = sqrt(pow(rad,2) - pow(coiDist,2));
+				// use this to calculate the centre of the circle
+				Point coiCen = (Point){cen.x + coiDist*currentInt.vec.x,
+						       cen.y + coiDist*currentInt.vec.y,
+						       cen.z + coiDist*currentInt.vec.z};
+				
 				// write to intersection string
 				sInter << "Sphere " << id << " intersects sphere " << currentInt.id 
 				       << " with circle of intersection located about (" << coiCen.x << ", " 
 				       << coiCen.y << ", " << coiCen.z << ") with radius " << coiRad << "\n";	
 				// add intersection to intersection vector for drawing
-				coi.push_back((intDraw){coiCen, coiRad, id, i});			
+				coi.push_back((intDraw){coiCen, currentInt.vec, coiRad, id, i});			
 				
 			}
 		
@@ -409,7 +414,7 @@ string vis::intersectsWith(int id) {
 				double iR = objRadius.at(i);
 			
 				// calculate length between spheres, normalize direction vector and compare to sum of radii
-				Point cenVec = (Point){c.x - iC.x, c.y - iC.y, c.z - iC.z};
+				Point cenVec = (Point){iC.x - c.x, iC.y - c.y, iC.z - c.z};
 				double cenVecLength = sqrt(pow(cenVec.x,2) + pow(cenVec.y,2) + pow(cenVec.z,2));
 				cenVec = (Point){cenVec.x/cenVecLength, cenVec.y/cenVecLength, cenVec.z/cenVecLength};
 				double overlap = (r+iR) - cenVecLength; 
@@ -433,57 +438,36 @@ string vis::intersectsWith(int id) {
 */
 void vis::drawCircle(intDraw circ) {
 	
-	// get the direction vector to calculate orientation of circle
-	Point id1Cen = objCentre.at(circ.id1);
-	Point id2Cen = objCentre.at(circ.id2);
-	Point dirVec = (Point){id2Cen.x - id1Cen.x, id2Cen.y - id1Cen.y, id2Cen.z - id1Cen.z};
-	// declare coiVec to store the direction vector of circle of intersection
-	Point coiVec;
+	// get the direction vector as this will be orthogonal vector of coi
+	Point dirVec = circ.vec;	
 	
-	// several options based on how many directions are non zero to work out coiVec
-	if(dirVec.x != 0.0 && dirVec.y != 0.0 && dirVec.z != 0.0) { // all 3 dir'ns non zero
-		// working out ratio to split vector into two to find orthogonal vector
-		double ratio = dirVec.x / (dirVec.x+dirVec.y);
-		Point dirVecX = (Point){dirVec.x, 0.0, dirVec.z*ratio};
-		Point dirVecY = (Point){0.0, dirVec.y, dirVec.z*(1.0-ratio)};
-		// now need to do a cross product between x and y vectors for orthogonal
-		coiVec = (Point){dirVecX.y*dirVecY.z - dirVecY.y*dirVecX.z,
-			       -(dirVecX.x*dirVecY.z - dirVecY.x*dirVecX.z),
-			       dirVecX.x*dirVecY.y - dirVecY.x*dirVecX.y};
-		// now to normalize coiVec
-		double nCoiVec = sqrt(pow(coiVec.x,2) + pow(coiVec.y,2) + pow(coiVec.z,2));
-		coiVec = (Point){coiVec.x/nCoiVec, coiVec.y/nCoiVec, coiVec.z/nCoiVec};
-	} else if(dirVec.x != 0.0 && dirVec.y != 0.0) // x and y direction case
-		coiVec = (Point){0.0, 0.0, 1.0}; // z direction coiVec
-	else if(dirVec.y != 0.0 && dirVec.z != 0.0) // z and y direction case
-		coiVec = (Point){1.0, 0.0, 0.0}; // x direction coiVec
-	else if(dirVec.x != 0.0 && dirVec.z != 0.0) // x and z direction case
-		coiVec = (Point){0.0, 1.0, 0.0}; // y direction coiVec
-	else if(dirVec.y == 0) // just x or just z case
-		coiVec = (Point){0.0, 1.0, 0.0}; // y dir'n coiVec
-	else // y non-zero case
-		coiVec = (Point){0.0, 0.0, 1.0}; // z dir'n coiVec
-		
-	cout << "(" << coiVec.x << ", " << coiVec.y << ", " << coiVec.z << ")\n";
+	// set up the translation matrix to move the circle to correct location
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix(); 
+	glTranslatef(circ.cen.x, circ.cen.y, circ.cen.z); // translate to centre point
+	glScalef(circ.rad, circ.rad, circ.rad);	// scale to radius size
+	/* current orthogonal vector (0, 0, 1), we need to pitch & yaw rotate to dirVec,
+	   this can be done using vector equations*/
+	glRotatef((180*acos(dirVec.z)/M_PI), -dirVec.y, dirVec.x, 0.0); // cross product 
 	
-	
-	// draw circle as GL_POLYGON by iterating to points round a circle
-	glBegin(GL_POLYGON);
+	// standard circle of with radius 1 about (0, 0, 0) on y x-y plane
+	// as translation matrix has been set up above this will be drawn at position & orientation
+	glBegin(GL_LINE_LOOP);
 	for(int i = 0; i < CIRCLE_POINTS; i++) {		
 		
 		double angle = ((double)i/(double)CIRCLE_POINTS)*2*M_PI; // calc current angle
-		//cout << cos(angle) << "\n";
 			
-		// vector from centre to circumfrence
-		Point p = (Point){cos(angle)*coiVec.x, cos(angle)*coiVec.y, sin(angle)*coiVec.z};
-		//cout << "(" << p.x << ", " << p.y << ", " << p.z << ")\n";
+		// calc current point on polygon
+		Point p = (Point){sin(angle), cos(angle), 0.0};
 		
 		// add point to GL_POLYGON
-		glNormal3fv((GLfloat*)&p);
-		glVertex3d(circ.cen.x + circ.rad*p.x, circ.cen.y + circ.rad*p.y, circ.cen.z + circ.rad*p.z);
+		glNormal3d(p.x, p.y, p.z);
+		glVertex3d(p.x, p.y, p.z);
 		
 	}
 	glEnd();
+	
+	glPopMatrix(); // return to normal modelview matrix
 	
 }
 
@@ -491,19 +475,13 @@ void vis::drawCircle(intDraw circ) {
    Draws the intersections saved in the global variable coi
 */
 void vis::drawIntersections() {
-	
+
+	// for each intersection
 	for(int i = 0; i < (int)coi.size(); i++) {
-		
 		// get details of circle of intersection from vector
 		intDraw iCoi = coi.at(i);
-		
-		// tangent case, we draw a very small (proportionally) circle to indicate tangent
-		if(iCoi.rad == 0.0) {
-			iCoi.rad = objRadius.at(iCoi.id1)*0.005;
-			drawCircle(iCoi);
-		} else // intersection case
-			drawCircle(iCoi);
-		
+		// draw circle
+		drawCircle(iCoi);
 	}
 	
 }
@@ -546,7 +524,13 @@ void vis::initializeGL() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
+	cout << intersectsWith(0);
 	cout << intersectsWith(1);
+	cout << intersectsWith(2);
+	cout << intersectsWith(3);
+	cout << intersectsWith(4);
+	cout << intersectsWith(5);
+	cout << intersectsWith(6);
 }
 
 /**

@@ -354,7 +354,7 @@ string vis::getIntersectionString(int id, vector<idOverVecLen> inter) {
 				sInter << "Sphere " << id << " is tangent to sphere " << currentInt.id << " at point ("
 				       << pTangent.x << ", " << pTangent.y << ", " << pTangent.z << ")\n";
 				// add tangent to intersection vector for drawing, relatively small radius
-				coi.push_back((intDraw){pTangent, currentInt.vec, objRadius.at(i)*0.05, id, i});
+				coi.push_back((intDraw){pTangent, currentInt.vec, objRadius.at(i)*0.01, id, i});
 				       
 				
 			} else { // intersection case

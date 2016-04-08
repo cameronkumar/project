@@ -501,9 +501,12 @@ void vis::initializeGL() {
 	glTranslatef(0.0, 0.0, -10.0); // moves camera back to view scene
 	glMatrixMode(GL_MODELVIEW); // initialise modelview matrix
 	glLoadIdentity();
+	
 	scaleFactor = 1.0; // initialise the zoom factor variable
 	pRot = yRot = 0.0; // initialise rotation variables
 	initColours(); // initialise colour vector
+	trans = 0; // initialise translation flag
+	select = 0; // initialise selection flag
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
@@ -650,7 +653,7 @@ void vis::mousePressEvent(QMouseEvent *event) {
 }
 
 void vis::mouseMoveEvent(QMouseEvent *event) {
-	
+		
 	// calculate change in x and y from start point to current mouse pos
 	float xPos = (float)(event->x() - startPos.x());
 	float yPos = (float)(event->y() - startPos.y());
@@ -659,6 +662,8 @@ void vis::mouseMoveEvent(QMouseEvent *event) {
 	// we translate in 2 dimensions, up and down in y direction, and left and right in axis
 	// parallel to screen. This axis direction needs to be calculated from y rotation
 	if(event->buttons() == Qt::RightButton) {
+	
+		trans = 1; // set flag to indicate a camera translation is taking place
 	
 		glMatrixMode(GL_MODELVIEW); // load modelview matrix to be translated
 		glTranslatef(cos((yRot*M_PI)/180.0)*(1.0/scaleFactor)*(xPos/68.0), // x direction translation
@@ -685,5 +690,25 @@ void vis::mouseMoveEvent(QMouseEvent *event) {
 	event->accept(); // accepts event
 	updateGL(); // redraw screen
 	startPos = event->pos(); // update the start position
+	
+}
+
+/**
+   interaction handling for when mouse button released, used for picking
+	   
+   @param event information about the mouse button released
+*/
+void vis::mouseReleaseEvent(QMouseEvent *event) {
+
+	if(event->buttons() == Qt:RightButton) { 
+		
+		if(trans==1) // case of translation currently taking place
+			trans = 0; // reset translation flag to 0 as it has ended
+		else { // case of picking
+			select = 1; // set selection mode flag
+			updateGL(); // render in selection mode
+		}	
+		
+	}
 	
 }

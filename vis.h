@@ -195,6 +195,12 @@ class vis: public QGLWidget {
 	
 	// holds information about the centre of circle of intersections for intersections to be drawn
 	vector<intDraw> coi;
+	
+	// flag to indicate whether a camera translation is currently taking place
+	int trans;
+	
+	// flag to indicate whether we wish to render in selection mode for picking
+	int select;
 
 	protected:
 	
@@ -247,6 +253,13 @@ class vis: public QGLWidget {
 	   @param event information about the mouse button press
 	*/
 	void mouseMoveEvent(QMouseEvent *event);
+	
+	/**
+	   interaction handling for when mouse button released, used for picking
+	   
+	   @param event information about the mouse button released
+	*/
+	void mouseReleaseEvent(QMouseEvent *event);
 	
 }; // end of class
 

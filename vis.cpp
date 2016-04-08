@@ -340,7 +340,7 @@ string vis::getIntersectionString(int id, vector<idOverVecLen> inter) {
 	else { 
 		// loop through all intersections and append string with information
 		for(int i = 0; i < (int)inter.size(); i++) {
-		
+			
 			// read intersection details from vector for calculations
 			idOverVecLen currentInt = inter.at(i);
 		
@@ -357,7 +357,7 @@ string vis::getIntersectionString(int id, vector<idOverVecLen> inter) {
 				coi.push_back((intDraw){pTangent, currentInt.vec, objRadius.at(i)*0.01, id, i});
 				       
 				
-			} else { // intersection case
+			} else { 
 				
 				// get radius of intersecting sphere
 				double iRad = objRadius.at(currentInt.id);
@@ -368,23 +368,37 @@ string vis::getIntersectionString(int id, vector<idOverVecLen> inter) {
 				double coiRad = sqrt(pow(rad,2) - pow(coiDist,2));
 				// use this to calculate the centre of the circle
 				Point coiCen = (Point){cen.x + coiDist*currentInt.vec.x,
-						       cen.y + coiDist*currentInt.vec.y,
-						       cen.z + coiDist*currentInt.vec.z};
+					       	       cen.y + coiDist*currentInt.vec.y,
+					       	       cen.z + coiDist*currentInt.vec.z};
 				
-				// write to intersection string
-				sInter << "Sphere " << id << " intersects sphere " << currentInt.id 
-				       << " with circle of intersection located about (" << coiCen.x << ", " 
-				       << coiCen.y << ", " << coiCen.z << ") with radius " << coiRad << "\n";	
-				// add intersection to intersection vector for drawing
-				coi.push_back((intDraw){coiCen, currentInt.vec, coiRad, id, i});			
+				// case of tangency between one sphere inside another
+				if(rad == iRad + currentInt.len || rad == iRad - currentInt.len) { 
+					
+					// write tangency string
+					sInter << "Sphere " << id << " is tangent to sphere " << currentInt.id << " at point ("
+					       << coiCen.x << ", " << coiCen.y << ", " << coiCen.z << ")\n";
+					// add to vector
+					coi.push_back((intDraw){coiCen, currentInt.vec,  objRadius.at(i)*0.01, id, i}); 		
+					
+					// write to intersection string
+					
+				} else if(rad < iRad + currentInt.len) { // intersection case
 				
+					// write to intersection string
+					sInter << "Sphere " << id << " intersects sphere " << currentInt.id 
+				       	       << " with circle of intersection located about (" << coiCen.x << ", " 
+				               << coiCen.y << ", " << coiCen.z << ") with radius " << coiRad << "\n";	
+					// add intersection to intersection vector for drawing
+					coi.push_back((intDraw){coiCen, currentInt.vec, coiRad, id, i});
+				
+				}
+				
+				// nothing done if sphere completely contained in another sphere
+				 			
 			}
-		
 		}	
 	}
-	
 	return(sInter.str()); // return string stream string
-	
 }
 
 /**
@@ -526,6 +540,12 @@ void vis::initializeGL() {
 	// enable blending, this will be used for translucent objects
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
+	for(int i = 0; i < (int)objCentre.size(); i++) {
+		objColour.at(i).R = colour.at(i%6).x;
+		objColour.at(i).G = colour.at(i%6).y;
+		objColour.at(i).B = colour.at(i%6).z;
+	}
 	
 	cout << intersectsWith(0);
 	cout << intersectsWith(1);
@@ -700,7 +720,7 @@ void vis::mouseMoveEvent(QMouseEvent *event) {
 */
 void vis::mouseReleaseEvent(QMouseEvent *event) {
 
-	if(event->buttons() == Qt:RightButton) { 
+	if(event->buttons() == Qt::RightButton) { 
 		
 		if(trans==1) // case of translation currently taking place
 			trans = 0; // reset translation flag to 0 as it has ended

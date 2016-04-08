@@ -501,6 +501,37 @@ void vis::drawIntersections() {
 }
 
 /**
+   Renders for picking
+*/
+void vis::getPicked() {
+
+	glDisable(GL_DITHER); // disable dithering to ensure all objects drawn in true colour
+	
+	// render each object in unique colour, index in vector determines red value
+	for(int i = 0; i < (int)objCentre.size(); i++) {
+		int r = i%255; // generate r value
+		int g = i/255; // generate g value
+		glColor3ub(r, g, 0); // set unique colour
+		drawSphere(objCentre.at(i), objRadius.at(i)); // draw sphere		
+	}
+	
+	glEnable(GL_DITHER); // reenable dithering
+	
+	// create variable to store pick data
+	unsigned char data[3];
+	// get viewport size, will be needed to calculate mouse position
+	GLint view[4];
+	glGetIntegerv(GL_VIEWPORT, view);
+	// get pixel colour under mouse location
+	glReadPixels(pickXY.x, view[3]-pickXY.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, data);
+	
+	int pickObj = (int)(data[0]+(255*data[1]));
+	
+	cout << pickObj << endl;
+	
+}
+
+/**
    initialises environment for OpenGL rendering when instance called
 */
 void vis::initializeGL() {
@@ -520,7 +551,7 @@ void vis::initializeGL() {
 	pRot = yRot = 0.0; // initialise rotation variables
 	initColours(); // initialise colour vector
 	trans = 0; // initialise translation flag
-	select = 0; // initialise selection flag
+	colourPicking = 0; // initialise colour picking flag
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
 	
@@ -582,34 +613,46 @@ void vis::resizeGL(int w, int h) {
 */ 
 void vis::paintGL() {
 
-	// create the render order
-	vector<int> renderOrder = sphereOrder();
-
-	// clearing screen first
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	// initialise standard surface properties and light position for all objects
-	GLfloat fPosition[4] = {1.0, 1.0, 1.0, 0.0}; // light position
-	glLightfv(GL_LIGHT0, GL_POSITION, fPosition); // setting light position
+	if(colourPicking == 0) {
+		
+		// create the render order
+		vector<int> renderOrder = sphereOrder();
 	
-	// drawing intersections first, draw them solid white
-	RGBA white = (RGBA){1.0, 1.0, 1.0, 1.0};
-	glMaterialfv(GL_FRONT, GL_AMBIENT, (GLfloat*)&white);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, (GLfloat*)&white);
-	drawIntersections();
+		// clearing screen first
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// initialise standard surface properties and light position for all objects
+		GLfloat fPosition[4] = {1.0, 1.0, 1.0, 0.0}; // light position
+		glLightfv(GL_LIGHT0, GL_POSITION, fPosition); // setting light position
 	
-	// draw objects from vectors, specify surface properties from vector
-	for(int i = 0; i < (int)renderOrder.size(); i++) {
-		// get colour from vector and set properties
-		RGBA col = objColour.at(renderOrder.at(i));
-		glMaterialfv(GL_FRONT, GL_AMBIENT, (GLfloat*)&col);
-		glMaterialfv(GL_FRONT, GL_DIFFUSE, (GLfloat*)&col);
-		// draw the sphere
-		drawSphere(objCentre.at(renderOrder.at(i)), objRadius.at(renderOrder.at(i)));
+		// drawing intersections first, draw them solid white
+		RGBA white = (RGBA){1.0, 1.0, 1.0, 1.0};
+		glMaterialfv(GL_FRONT, GL_AMBIENT, (GLfloat*)&white);
+		glMaterialfv(GL_FRONT, GL_DIFFUSE, (GLfloat*)&white);
+		drawIntersections();
+	
+		// draw objects from vectors, specify surface properties from vector
+		for(int i = 0; i < (int)renderOrder.size(); i++) {
+			// get colour from vector and set properties
+			RGBA col = objColour.at(renderOrder.at(i));
+			glMaterialfv(GL_FRONT, GL_AMBIENT, (GLfloat*)&col);
+			glMaterialfv(GL_FRONT, GL_DIFFUSE, (GLfloat*)&col);
+			// draw the sphere
+			drawSphere(objCentre.at(renderOrder.at(i)), objRadius.at(renderOrder.at(i)));
+		}
+	
+		// draw frame and render to screen
+		QGLWidget::swapBuffers();
+		
+	} else { // case where colour picking flag is set
+	
+		glDisable(GL_LIGHTING); // disable lighting for the colour pick
+		glClearColor(1.0,1.0,1.0,0.0); // white background
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clearing screen
+		
+		getPicked(); // pass to function to determine picked object
+		
+	
 	}
-	
-	// draw frame and render to screen
-	glFinish();
-
 }
 
 /**
@@ -720,13 +763,14 @@ void vis::mouseMoveEvent(QMouseEvent *event) {
 */
 void vis::mouseReleaseEvent(QMouseEvent *event) {
 
-	if(event->buttons() == Qt::RightButton) { 
+	if(event->button() == Qt::RightButton) { 
 		
 		if(trans==1) // case of translation currently taking place
 			trans = 0; // reset translation flag to 0 as it has ended
 		else { // case of picking
-			select = 1; // set selection mode flag
-			updateGL(); // render in selection mode
+			colourPicking = 1; // set colour picking flag
+			pickXY = (xyCoord){event->x(), event->y()}; // save mouse location
+			updateGL(); // render for colour picking
 		}	
 		
 	}

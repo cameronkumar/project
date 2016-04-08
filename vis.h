@@ -61,6 +61,13 @@ struct intDraw {
 
 };
 
+// stores 2 integers as an x and y coordinate, used for picking
+struct xyCoord {
+	
+	int x, y;
+	
+};
+
 // defining our visualisation class as subclass of QGLWidget
 class vis: public QGLWidget {
 
@@ -164,6 +171,11 @@ class vis: public QGLWidget {
 	*/
 	void drawIntersections();
 	
+	/**
+	   Renders for picking
+	*/
+	void getPicked();
+	
 	private:
 	
 	// holds the coordinate points for a standard sphere
@@ -199,8 +211,11 @@ class vis: public QGLWidget {
 	// flag to indicate whether a camera translation is currently taking place
 	int trans;
 	
-	// flag to indicate whether we wish to render in selection mode for picking
-	int select;
+	// stores the location of right click event for picking interogation
+	xyCoord pickXY;
+	
+	// flag to indicate whether we wish to render for colour picking
+	int colourPicking;
 
 	protected:
 	

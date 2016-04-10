@@ -63,6 +63,28 @@ vector<Point> vis::makeSpherePoints(int nPoints) {
 	
 }
 
+/**
+   create points of a cube about the origin with side length 1
+   cube points added front to back, top to bottom, left to right
+	   
+   @return vector containing points of cube
+*/
+vector<Point> vis::makeCubePoints() {
+	
+	// create the points
+	vector<Point> cube;	
+	cube.push_back((Point){-0.5, 0.5, 0.5});
+	cube.push_back((Point){0.5, 0.5, 0.5});
+	cube.push_back((Point){-0.5, -0.5, 0.5});
+	cube.push_back((Point){0.5, -0.5, 0.5});
+	cube.push_back((Point){-0.5, 0.5, -0.5});
+	cube.push_back((Point){0.5, 0.5, -0.5});
+	cube.push_back((Point){-0.5, -0.5, -0.5});
+	cube.push_back((Point){0.5, -0.5, -0.5});
+	
+	// return the cube points
+	return(cube);
+}	
 
 /**
    draws a sphere with specified centre and radius
@@ -502,8 +524,10 @@ void vis::drawIntersections() {
 
 /**
    Renders for picking
+   
+   @return integer id of picked object
 */
-void vis::getPicked() {
+int vis::getPicked() {
 
 	glDisable(GL_DITHER); // disable dithering to ensure all objects drawn in true colour
 	
@@ -522,13 +546,61 @@ void vis::getPicked() {
 	// get viewport size, will be needed to calculate mouse position
 	GLint view[4];
 	glGetIntegerv(GL_VIEWPORT, view);
-	// get pixel colour under mouse location
+	// get pixel colour under mouse location (y coordinates inverted)
 	glReadPixels(pickXY.x, view[3]-pickXY.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, data);
 	
-	int pickObj = (int)(data[0]+(255*data[1])); // convert back to 
+	int pickObj = (int)(data[0]+(255*data[1])); // convert back to id
+	colourPicking = 0; // reset flag	
+	return(pickObj);
+}
+
+/**
+   Draws cube face with side length 1 about origin
+   
+   @param p array of int containing each point on cube face
+*/
+void vis::drawCubeFace(int *p) {
 	
-	cout << pickObj << endl;
-	colourPicking = 0;	
+	// loop through each point to draw the face
+	for(int i = 0; i < 4; i++) {
+		Point pi = cubePoints.at(p[i]); // get point
+		glNormal3d(pi.x, pi.y, pi.z);
+		glVertex3d(pi.x, pi.y, pi.z);
+	}
+	
+	return;
+}
+
+/**
+   Renders a wireframe cube around picked object
+   
+   @param id of sphere that cube should be drawn around
+*/
+void vis::selectionCube(int id) {
+	
+	// set up transformation radius to draw cube correctly
+	glMatrixMode(GL_MODELVIEW); // load matrix
+	glPushMatrix(); // save matrix
+	glTranslatef(objCentre.at(id).x, objCentre.at(id).y, objCentre.at(id).z);
+	double side = 2*(objRadius.at(id)); // compute side length
+	glScalef(side, side, side);
+	
+	// creating face point loops for rendering
+	int face[4][4] = {{0, 1, 3, 2},
+			  {1, 5, 7, 3},
+			  {5, 4, 6, 7},
+			  {4, 0, 2, 6}};
+	
+	// draw each face one at a time, each is a different line loop
+	for(int i=0; i<4; i++) {
+		glBegin(GL_LINE_LOOP);
+		drawCubeFace(face[i]);
+		glEnd();
+	}
+	
+	glPopMatrix(); // reload matrix	
+	
+	return;
 }
 
 /**
@@ -536,8 +608,9 @@ void vis::getPicked() {
 */
 void vis::initializeGL() {
 
-	// initialise sphere points
+	// initialise sphere and cube points
 	spherePoints = makeSpherePoints(CIRCLE_POINTS);
+	cubePoints = makeCubePoints();
 	
 	glClearColor(0.0,0.0,0.0,0.0); // black background
 	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
@@ -552,6 +625,7 @@ void vis::initializeGL() {
 	initColours(); // initialise colour vector
 	trans = 0; // initialise translation flag
 	colourPicking = 0; // initialise colour picking flag
+	pickID = -1; // initialise selected object variable
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when rendering
 	QGLWidget::setAutoBufferSwap(false); // dont autoswap buffers, needed for picking
@@ -631,6 +705,10 @@ void vis::paintGL() {
 		glMaterialfv(GL_FRONT, GL_AMBIENT, (GLfloat*)&white);
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, (GLfloat*)&white);
 		drawIntersections();
+		
+		// drawing selection cube if an object is currently selected
+		if(pickID != -1)
+			selectionCube(pickID);
 	
 		// draw objects from vectors, specify surface properties from vector
 		for(int i = 0; i < (int)renderOrder.size(); i++) {
@@ -651,11 +729,18 @@ void vis::paintGL() {
 		glClearColor(1.0,1.0,1.0,0.0); // white background
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clearing screen
 		
-		getPicked(); // pass to function to determine picked object
+		int pick = getPicked(); // determine picked object
+		
+		// set selected object or deselect if no object selected
+		if(pick!=256*255) // case where obj selected
+			pickID = pick; // save id of picked object
+		else // no object selected
+			pickID = -1; // set selected object variable to indicate nothing selected
 		
 		glEnable(GL_LIGHTING); // restore original settings
-		glClearColor(0.0,0.0,0.0,0.0);
-				
+		glClearColor(0.0,0.0,0.0,0.0);	
+		
+		updateGL();				
 	}
 }
 
@@ -671,7 +756,7 @@ void vis::wheelEvent(QWheelEvent *event) {
 	float deg = (float)event->delta();
 	deg = deg/120.0; // deg now number of scrolls in + or - dir'n
 	
-	glMatrixMode(GL_PROJECTION); // change to modelview matrix
+	glMatrixMode(GL_PROJECTION); // change to projection matrix
 	if(deg > 0.0) {// wheel scrolled forward
 		glScalef(pow(1.1, deg), pow(1.1, deg), pow(1.1, deg)); 
 		scaleFactor = scaleFactor*pow(1.1, deg); // update scale factor
@@ -695,7 +780,7 @@ void vis::keyPressEvent(QKeyEvent *event) {
 	
 	int key = event->key(); // get the integer value of key pressed
 	
-	glMatrixMode(GL_PROJECTION); // change to modelview matrix
+	glMatrixMode(GL_PROJECTION); // change to projection matrix
 	if(key == Qt::Key_Equal) { // "+" button pressed
 		glScalef(1.1f, 1.1f, 1.1f); // zoom in 
 		scaleFactor = scaleFactor*1.1; // update scale factor
@@ -739,7 +824,7 @@ void vis::mouseMoveEvent(QMouseEvent *event) {
 		
 	} else if (event->buttons() == Qt::LeftButton) {
 	
-		glMatrixMode(GL_MODELVIEW); // load modelview matrix to be translated
+		glMatrixMode(GL_PROJECTION); // load projection matrix to be translated
 		// rotate x direction movement about yaw axis
 		glRotatef(xPos, 0.0, 1.0, 0.0); 
 		// we want to keep track of the rotation about the yaw axis, so update var

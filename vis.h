@@ -89,6 +89,14 @@ class vis: public QGLWidget {
 	vector<Point> makeSpherePoints(int nPoints);
 	
 	/**
+	   create points of a cube about the origin with side length 1
+	   cube points added front to back, top to bottom, left to right
+	   
+	   @return vector containing points of cube
+	*/
+	vector<Point> makeCubePoints();
+	
+	/**
 	   draws a sphere with specified centre and radius
 	   
 	   @param centre coordinate point of centre location
@@ -173,13 +181,32 @@ class vis: public QGLWidget {
 	
 	/**
 	   Renders for picking
+	   
+	   @return integer id of picked object
 	*/
-	void getPicked();
+	int getPicked();
+	
+	/**
+	   Draws cube side with face length 1 about origin
+	   
+	   @param p array of int containing each point on cube face
+	*/
+	void drawCubeFace(int p[4]);
+	
+	/**
+	   Renders a wireframe cube around picked object
+	   
+	   @param id of sphere that cube should be drawn around
+	*/
+	void selectionCube(int id);
 	
 	private:
 	
 	// holds the coordinate points for a standard sphere
 	vector<Point> spherePoints; 
+	
+	// holds the coordinate points for standard cube
+	vector<Point> cubePoints;
 	
 	// holds the data of all geometric objects centres
 	vector<Point> objCentre;
@@ -211,11 +238,14 @@ class vis: public QGLWidget {
 	// flag to indicate whether a camera translation is currently taking place
 	int trans;
 	
+	// flag to indicate whether we wish to render for colour picking
+	int colourPicking;
+	
 	// stores the location of right click event for picking interogation
 	xyCoord pickXY;
 	
-	// flag to indicate whether we wish to render for colour picking
-	int colourPicking;
+	// -1 if no object selected, else holds id of selected object
+	int pickID;
 
 	protected:
 	

@@ -525,10 +525,10 @@ void vis::getPicked() {
 	// get pixel colour under mouse location
 	glReadPixels(pickXY.x, view[3]-pickXY.y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, data);
 	
-	int pickObj = (int)(data[0]+(255*data[1]));
+	int pickObj = (int)(data[0]+(255*data[1])); // convert back to 
 	
 	cout << pickObj << endl;
-	
+	colourPicking = 0;	
 }
 
 /**
@@ -553,7 +553,8 @@ void vis::initializeGL() {
 	trans = 0; // initialise translation flag
 	colourPicking = 0; // initialise colour picking flag
 	
-	glEnable(GL_DEPTH_TEST); // allows for depth comparison when renderin
+	glEnable(GL_DEPTH_TEST); // allows for depth comparison when rendering
+	QGLWidget::setAutoBufferSwap(false); // dont autoswap buffers, needed for picking
 	
 	// setting up lighting
 	glShadeModel(GL_SMOOTH);
@@ -613,6 +614,7 @@ void vis::resizeGL(int w, int h) {
 */ 
 void vis::paintGL() {
 
+	glDrawBuffer(GL_BACK); // set to draw on back buffer then swap buffers
 	if(colourPicking == 0) {
 		
 		// create the render order
@@ -651,7 +653,9 @@ void vis::paintGL() {
 		
 		getPicked(); // pass to function to determine picked object
 		
-	
+		glEnable(GL_LIGHTING); // restore original settings
+		glClearColor(0.0,0.0,0.0,0.0);
+				
 	}
 }
 
@@ -765,8 +769,9 @@ void vis::mouseReleaseEvent(QMouseEvent *event) {
 
 	if(event->button() == Qt::RightButton) { 
 		
-		if(trans==1) // case of translation currently taking place
+		if(trans==1){ // case of translation currently taking place
 			trans = 0; // reset translation flag to 0 as it has ended
+		}
 		else { // case of picking
 			colourPicking = 1; // set colour picking flag
 			pickXY = (xyCoord){event->x(), event->y()}; // save mouse location

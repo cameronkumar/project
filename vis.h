@@ -56,8 +56,7 @@ struct intDraw {
 
 	Point cen, vec;
 	double rad;
-	int id1;
-	int id2;
+	int id1, id2;
 
 };
 
@@ -153,21 +152,21 @@ class vis: public QGLWidget {
 	void changeTransparency(int id, double alpha);
 	
 	/**
-	   Returns human readable string detailing all intersections for an object
+	   Calculates the centre, radius, and orthogonal vector for an intersection
+	   Stores detail in global vector
 	   
 	   @param id index of object to calculate intersections for
 	   @param inter list of intersecting objects
-	   @return human readable string containing intersection details
 	*/
-	string getIntersectionString(int id, vector<idOverVecLen> inter); 
+	void calculateIntersection(int id, vector<idOverVecLen> inter); 
 	
 	/**
-	   Returns a string detailing all intersections and tangents for specified object
+	   Identifies which objects intersect specified object
 	   
 	   @param id identifier of object we will calculate intersections for
-	   @return string in human readable form of intersection details
+	   @return number of objects this object intersects with
 	*/
-	string intersectsWith(int id);
+	int intersectsWith(int id);
 	
 	/**
 	   Draws a circle given a specified centre and radius
@@ -240,8 +239,14 @@ class vis: public QGLWidget {
 	// holds the current rotation about the pitch axis, used to prevent over rotation
 	double pRot;
 	
-	// holds information about the centre of circle of intersections for intersections to be drawn
+	// holds the position that a particular objects cois begin at in the coi vector
+	vector<int> coiBegin;
+	
+	// holds information about circles of intersection
 	vector<intDraw> coi;
+	
+	// holds information about circles of intersection to be drawn
+	vector<intDraw> coiDraw; 
 	
 	// flag to indicate whether a camera translation is currently taking place
 	int trans;
@@ -257,7 +262,15 @@ class vis: public QGLWidget {
 	
 	public slots:
 	
-	void test();
+	/**
+	   slot that prints intersections for currently selected object to standard output
+	*/
+	void printIntersections();
+	
+	/**
+	   slot that updates coiDraw vector depending on currently selected object
+	*/
+	void updateDrawList();
 
 	protected:
 	

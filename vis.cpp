@@ -344,13 +344,12 @@ void vis::changeTransparency(int id, double alpha) {
 }
 
 /**
-   Returns human readable string detailing all intersections for an object
+   Calculates the centre, radius, and orthogonal vector for an intersection
 	   
    @param id index of object to calculate intersections for
    @param inter list of intersecting objects
-   @return human readable string containing intersection details
 */
-string vis::getIntersectionString(int id, vector<idOverVecLen> inter) {
+void vis::calculateIntersection(int id, vector<idOverVecLen> inter) {
 	
 	stringstream sInter; // will hold human readable intersection details
 	sInter << setprecision(4); // setting precision for doubles
@@ -358,84 +357,64 @@ string vis::getIntersectionString(int id, vector<idOverVecLen> inter) {
 	Point cen = objCentre.at(id); 
 	double rad = objRadius.at(id);
 	
-	if((int)inter.size() == 0) // case of no intersections
-		sInter << "Sphere " << id << " does not intersect any other objects!\n";
-	else { 
-		// loop through all intersections and append string with information
-		for(int i = 0; i < (int)inter.size(); i++) {
-			
-			// read intersection details from vector for calculations
-			idOverVecLen currentInt = inter.at(i);
+	// loop through all intersections and append string with information
+	for(int i = 0; i < (int)inter.size(); i++) {
 		
-			if(inter.at(i).over == 0.0) { // tangent case
+		// read intersection details from vector for calculations
+		idOverVecLen currentInt = inter.at(i);
+		
+		if(inter.at(i).over == 0.0) { // tangent case
+		
+			// calculating tangent point
+			Point pTangent = (Point){cen.x+rad*currentInt.vec.x, // x
+					 	 cen.y+rad*currentInt.vec.y, // y
+					 	 cen.z+rad*currentInt.vec.z};// z
+			// add tangent to intersection vector for drawing, relatively small radius
+			coi.push_back((intDraw){pTangent, currentInt.vec, 0.0, id, currentInt.id});
+				
+		} else { 
+				
+			// get radius of intersecting sphere
+			double iRad = objRadius.at(currentInt.id);
+			// now calculate the distance from the centre of sphere i to coi 
+			double coiDist = pow(currentInt.len, 2) - (pow(iRad,2) - pow(rad,2));
+			coiDist = coiDist/(2*currentInt.len);
+			// also calculate the radius using the distance calculation as this is a part of the equation
+			double coiRad = sqrt(pow(rad,2) - pow(coiDist,2));
+			// use this to calculate the centre of the circle
+			Point coiCen = (Point){cen.x + coiDist*currentInt.vec.x,
+				       	       cen.y + coiDist*currentInt.vec.y,
+				       	       cen.z + coiDist*currentInt.vec.z};
 			
-				// calculating tangent point
-				Point pTangent = (Point){cen.x+rad*currentInt.vec.x, // x
-						 	 cen.y+rad*currentInt.vec.y, // y
-						 	 cen.z+rad*currentInt.vec.z};// z
-				// write to intersection string
-				sInter << "Sphere " << id << " is tangent to sphere " << currentInt.id << " at point ("
-				       << pTangent.x << ", " << pTangent.y << ", " << pTangent.z << ")\n";
-				// add tangent to intersection vector for drawing, relatively small radius
-				coi.push_back((intDraw){pTangent, currentInt.vec, objRadius.at(i)*0.01, id, i});
-				       
-				
-			} else { 
-				
-				// get radius of intersecting sphere
-				double iRad = objRadius.at(currentInt.id);
-				// now calculate the distance from the centre of sphere i to coi 
-				double coiDist = pow(currentInt.len, 2) - (pow(iRad,2) - pow(rad,2));
-				coiDist = coiDist/(2*currentInt.len);
-				// also calculate the radius using the distance calculation as this is a part of the equation
-				double coiRad = sqrt(pow(rad,2) - pow(coiDist,2));
-				// use this to calculate the centre of the circle
-				Point coiCen = (Point){cen.x + coiDist*currentInt.vec.x,
-					       	       cen.y + coiDist*currentInt.vec.y,
-					       	       cen.z + coiDist*currentInt.vec.z};
-				
-				// case of tangency between one sphere inside another
-				if(rad == iRad + currentInt.len || rad == iRad - currentInt.len) { 
-					
-					// write tangency string
-					sInter << "Sphere " << id << " is tangent to sphere " << currentInt.id << " at point ("
-					       << coiCen.x << ", " << coiCen.y << ", " << coiCen.z << ")\n";
-					// add to vector
-					coi.push_back((intDraw){coiCen, currentInt.vec,  objRadius.at(i)*0.01, id, i}); 		
-					
-					// write to intersection string
-					
-				} else if(rad < iRad + currentInt.len) { // intersection case
-				
-					// write to intersection string
-					sInter << "Sphere " << id << " intersects sphere " << currentInt.id 
-				       	       << " with circle of intersection located about (" << coiCen.x << ", " 
-				               << coiCen.y << ", " << coiCen.z << ") with radius " << coiRad << "\n";	
-					// add intersection to intersection vector for drawing
-					coi.push_back((intDraw){coiCen, currentInt.vec, coiRad, id, i});
-				
-				}
-				
-				// nothing done if sphere completely contained in another sphere
-				 			
+			// case of tangency between one sphere inside another
+			if(rad == iRad + currentInt.len || rad == iRad - currentInt.len) { 
+				// add to vector
+				coi.push_back((intDraw){coiCen, currentInt.vec,  0.0, id, currentInt.id}); 			
+			} else if(rad < iRad + currentInt.len) { // intersection case
+				// add intersection to intersection vector for drawing
+				coi.push_back((intDraw){coiCen, currentInt.vec, coiRad, id, currentInt.id});
 			}
-		}	
+			// nothing done if sphere completely contained in another sphere
+						
+		}
 	}
-	return(sInter.str()); // return string stream string
+	
+	return; 
 }
 
 /**
-   Returns a string detailing all intersections and tangents for specified object
+   Identifies which objects intersect specified object
 	   
    @param id identifier of object we will calculate intersections for
-   @return string in human readable form of intersection details
+   @return number of objects this object intersects with
 */
-string vis::intersectsWith(int id) {
+int vis::intersectsWith(int id) {
 	
 	// error check to ensure valid id specified
-	if(id < 0 || id >= (int)objCentre.size())
-		return("Error! ID specified for intersection check out of range!\n");
-	else {
+	if(id < 0 || id >= (int)objCentre.size()) {
+		cout << "Error! ID specified for intersection check out of range!\n";
+		return 0;
+	} else {
 		// get the object's centre and radius
 		Point c = objCentre.at(id); 
 		double r = objRadius.at(id);
@@ -462,9 +441,13 @@ string vis::intersectsWith(int id) {
 					
 			}	
 		}
+		
+		// calculate details of specific intersection
+		if((int)inter.size() != 0)
+			calculateIntersection(id, inter);
 	
-		// now to create string to be returned to user
-		return(getIntersectionString(id, inter)); 
+		// return number of intersections
+		return((int)inter.size()); 
 	}
 }
 
@@ -506,6 +489,7 @@ void vis::drawCircle(intDraw circ) {
 	
 	glPopMatrix(); // return to normal modelview matrix
 	
+	return;	
 }
 
 /** 
@@ -514,13 +498,14 @@ void vis::drawCircle(intDraw circ) {
 void vis::drawIntersections() {
 
 	// for each intersection
-	for(int i = 0; i < (int)coi.size(); i++) {
+	for(int i = 0; i < (int)coiDraw.size(); i++) {
 		// get details of circle of intersection from vector
-		intDraw iCoi = coi.at(i);
+		intDraw iCoi = coiDraw.at(i);
 		// draw circle
 		drawCircle(iCoi);
 	}
 	
+	return;	
 }
 
 /**
@@ -604,9 +589,52 @@ void vis::selectionCube(int id) {
 	return;
 }
 
-void vis::test() {
-	changeColour(0, (Point){0.3, 0.7, 0.0});
-	updateGL();
+/**
+   slot that prints intersectiosn for currently selected object to standard output
+*/
+void vis::printIntersections() {
+	
+	// create string stream that will hold output string, set precision for reals
+	stringstream sInter; 
+	sInter << setprecision(4);
+	int intFlag = 0; // flag, true if an intersection occurs for a particular object
+	
+	// initalise iterator for looping through coi, starting at coiBegin location for id
+	vector<intDraw>::iterator it = coi.begin();
+	advance(it, coiBegin.at(pickID));
+	
+	if(it!=coi.end()) {
+		intDraw itCoi = *it; // get coi at positon
+		// loop through coi vector until all intersection strings created
+		while(itCoi.id1 == pickID) {
+		
+			if(itCoi.rad == 0.0)  // tangent case
+				sInter << "Sphere " << itCoi.id1 << " is tangent to sphere " << itCoi.id2 << " at point ("
+				       << itCoi.cen.x << ", " << itCoi.cen.y << ", " << itCoi.cen.z << ")\n";
+			else // intersection case
+				sInter << "Sphere " << itCoi.id1 << " intersects sphere " << itCoi.id2 
+				       << " with circle of intersection located about (" << itCoi.cen.x << ", " 
+				       << itCoi.cen.y << ", " << itCoi.cen.z << ") with radius " << itCoi.rad << "\n";
+		
+			intFlag = 1; // intersection occurs, set flag
+			it++; // iterate iterator
+			itCoi = *it; // get new coi
+		}
+	}
+	
+	if(intFlag == 0) // case of no intersections
+		sInter << "Sphere " << pickID << " does not intersect any other objects!\n";
+	
+	cout << sInter.str(); // print out the intersection information
+}
+
+/**
+   slot that updates coiDraw vector depending on currently selected object
+*/
+void vis::updateDrawList() {
+	
+	
+	
 }
 
 /**
@@ -643,11 +671,13 @@ void vis::createContextMenu() {
 	menu.addAction(drawAllIntersections);
 	
 	// link each menu option to respective slot to control action
-	connect(test, SIGNAL(triggered()), this, SLOT(test()));
+	connect(printIntersections, SIGNAL(triggered()), this, SLOT(printIntersections()));
+	connect(drawIntersections, SIGNAL(triggered()), this, SLOT(updateDrawList()));
 	
 	// create context menu at cursor
 	menu.exec(QCursor::pos());
 	
+	return;	
 }
 
 /**
@@ -658,6 +688,15 @@ void vis::initializeGL() {
 	// initialise sphere and cube points
 	spherePoints = makeSpherePoints(CIRCLE_POINTS);
 	cubePoints = makeCubePoints();
+	
+	// counter to hold each object's cois starting position in vector
+	int startPos = 0;
+	
+	// calculate intersections between spheres and store for later
+	for(int i = 0; i < (int)objCentre.size(); i++) {
+		coiBegin.push_back(startPos); // save the coi start pos
+		startPos += intersectsWith(i); // calculations done here and counter incremented
+	}
 	
 	glClearColor(0.0,0.0,0.0,0.0); // black background
 	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
@@ -694,19 +733,13 @@ void vis::initializeGL() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
+	// temp colouring options
 	for(int i = 0; i < (int)objCentre.size(); i++) {
 		objColour.at(i).R = colour.at(i%6).x;
 		objColour.at(i).G = colour.at(i%6).y;
 		objColour.at(i).B = colour.at(i%6).z;
 	}
 	
-	cout << intersectsWith(0);
-	cout << intersectsWith(1);
-	cout << intersectsWith(2);
-	cout << intersectsWith(3);
-	cout << intersectsWith(4);
-	cout << intersectsWith(5);
-	cout << intersectsWith(6);
 }
 
 /**

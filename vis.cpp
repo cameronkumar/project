@@ -499,10 +499,16 @@ void vis::drawIntersections() {
 
 	// for each intersection
 	for(int i = 0; i < (int)coiDraw.size(); i++) {
+	
 		// get details of circle of intersection from vector
 		intDraw iCoi = coiDraw.at(i);
-		// draw circle
-		drawCircle(iCoi);
+		
+		// if tangent then set appropriate circle diametre
+		if(iCoi.rad == 0.0)
+			iCoi.rad = 0.05*objRadius.at(iCoi.id1);
+		
+		drawCircle(iCoi); // draw circle
+		
 	}
 	
 	return;	
@@ -626,6 +632,8 @@ void vis::printIntersections() {
 		sInter << "Sphere " << pickID << " does not intersect any other objects!\n";
 	
 	cout << sInter.str(); // print out the intersection information
+	
+	return;
 }
 
 /**
@@ -633,8 +641,43 @@ void vis::printIntersections() {
 */
 void vis::updateDrawList() {
 	
+	/* flag that indicates whether we are adding or removing from coiDraw, 1 if
+	   removing, 0 if adding */
+	int removeFlag = 0; 
 	
+	// initalise iterator for looping through intDraw vectors, starting with coiDraw
+	vector<intDraw>::iterator it = coiDraw.begin();
 	
+	// if vec not empty, check if intersections for this object already drawn
+	while(removeFlag!=1 && it!=coiDraw.end()) {
+		intDraw currentInt = *it; // get current intersection
+		if(currentInt.id1 == pickID) // intersections already present
+			removeFlag = 1; // set flag
+		else
+			it++; // else increment counter
+	}
+	
+	if(removeFlag == 1) { // case where we want to remove from draw list
+	
+		// calculate number of items to erase then erase them
+		int nInts = (coiBegin.at(pickID+1) - coiBegin.at(pickID)); 
+		coiDraw.erase(it, it+nInts);
+		
+	} else { // case where we want to add intersections to draw list
+
+		if(coiBegin.at(pickID) == coiBegin.at(pickID+1)) // case where nothing to add
+			cout << "No intersections to draw!\n";
+		else {
+			// add each coi for this object to the coiDraw vector
+			for(int i=coiBegin.at(pickID); i<coiBegin.at(pickID+1); i++)
+				coiDraw.push_back(coi.at(i));
+		}
+			
+	}
+	
+	updateGL(); // render new frame to screen
+	
+	return;
 }
 
 /**
@@ -697,6 +740,9 @@ void vis::initializeGL() {
 		coiBegin.push_back(startPos); // save the coi start pos
 		startPos += intersectsWith(i); // calculations done here and counter incremented
 	}
+	/* add an extra item into coiBegin that is the end of the vector,
+	   allows us to calculate how many intersections one object has for last object */
+	coiBegin.push_back(coi.size());
 	
 	glClearColor(0.0,0.0,0.0,0.0); // black background
 	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane

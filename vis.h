@@ -71,6 +71,9 @@ struct xyCoord {
 // defining our visualisation class as subclass of QGLWidget
 class vis: public QGLWidget {
 
+	// Q_OBJECT macro
+	Q_OBJECT
+
 	public:
 	
 	/**
@@ -79,7 +82,7 @@ class vis: public QGLWidget {
 	   @param parent parent class, inherit from there 
 	*/
 	vis(QWidget *parent);
-	
+		
 	/**
 	   creates the points of a sphere object, centre at origin, radius 1
 	   
@@ -200,6 +203,11 @@ class vis: public QGLWidget {
 	*/
 	void selectionCube(int id);
 	
+	/**
+	   Creates the context menu for a right click pick
+	*/
+	void createContextMenu();
+	
 	private:
 	
 	// holds the coordinate points for a standard sphere
@@ -246,6 +254,10 @@ class vis: public QGLWidget {
 	
 	// -1 if no object selected, else holds id of selected object
 	int pickID;
+	
+	public slots:
+	
+	void test();
 
 	protected:
 	

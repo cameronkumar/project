@@ -10,6 +10,7 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QKeyEvent>
+#include <QMenu>
 #include <cmath> // for power & other math funcs
 #include <iostream>
 #include <fstream> // for file handling
@@ -603,6 +604,52 @@ void vis::selectionCube(int id) {
 	return;
 }
 
+void vis::test() {
+	changeColour(0, (Point){0.3, 0.7, 0.0});
+	updateGL();
+}
+
+/**
+   Creates the context menu for a right click pick
+*/
+void vis::createContextMenu() {
+	
+	QMenu menu; // create the menu widget
+	
+	// create menu actions, these will be the options on our menu
+	QAction* changeColour = new QAction("Change Colour", this);
+	QAction* changeTransparency = new QAction("Change Transparency", this);
+	QAction* printIntersections = new QAction("Print Intersections", this);
+	QAction* drawIntersections = new QAction("Draw Intersections", this);
+	QAction* printAllIntersections = new QAction("Print All Intersections", this);
+	QAction* drawAllIntersections = new QAction("Draw All Intersections", this);
+	
+	// if no particular object selected disable object specific options
+	if(pickID == -1) { 
+		changeColour->setEnabled(0);
+		changeTransparency->setEnabled(0);
+		printIntersections->setEnabled(0);
+		drawIntersections->setEnabled(0);	
+	}
+	
+	// populate menu with actions and seperators
+	menu.addAction(changeColour);
+	menu.addAction(changeTransparency);
+	menu.addSeparator();
+	menu.addAction(printIntersections);
+	menu.addAction(drawIntersections);
+	menu.addSeparator();
+	menu.addAction(printAllIntersections);
+	menu.addAction(drawAllIntersections);
+	
+	// link each menu option to respective slot to control action
+	connect(test, SIGNAL(triggered()), this, SLOT(test()));
+	
+	// create context menu at cursor
+	menu.exec(QCursor::pos());
+	
+}
+
 /**
    initialises environment for OpenGL rendering when instance called
 */
@@ -740,7 +787,9 @@ void vis::paintGL() {
 		glEnable(GL_LIGHTING); // restore original settings
 		glClearColor(0.0,0.0,0.0,0.0);	
 		
-		updateGL();				
+		updateGL(); // draw new frame to screen to display box selection
+		
+		createContextMenu(); // call to function to create menu
 	}
 }
 

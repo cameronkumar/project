@@ -32,3 +32,7 @@
 
 # executable gui object
 project
+
+#metafiles moc created
+moc_vis.cpp
+moc_vis.o

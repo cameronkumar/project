@@ -11,6 +11,7 @@
 #include <QWheelEvent>
 #include <QKeyEvent>
 #include <QMenu>
+#include <QSignalMapper>
 #include <cmath> // for power & other math funcs
 #include <iostream>
 #include <fstream> // for file handling
@@ -597,8 +598,10 @@ void vis::selectionCube(int id) {
 
 /**
    slot that prints intersectiosn for currently selected object to standard output
+   
+   @param id id of currently selected object
 */
-void vis::printIntersections() {
+void vis::printIntersections(int id) {
 	
 	// create string stream that will hold output string, set precision for reals
 	stringstream sInter; 
@@ -607,12 +610,12 @@ void vis::printIntersections() {
 	
 	// initalise iterator for looping through coi, starting at coiBegin location for id
 	vector<intDraw>::iterator it = coi.begin();
-	advance(it, coiBegin.at(pickID));
+	advance(it, coiBegin.at(id));
 	
 	if(it!=coi.end()) {
 		intDraw itCoi = *it; // get coi at positon
 		// loop through coi vector until all intersection strings created
-		while(itCoi.id1 == pickID) {
+		while(itCoi.id1 == id) {
 		
 			if(itCoi.rad == 0.0)  // tangent case
 				sInter << "Sphere " << itCoi.id1 << " is tangent to sphere " << itCoi.id2 << " at point ("
@@ -629,7 +632,7 @@ void vis::printIntersections() {
 	}
 	
 	if(intFlag == 0) // case of no intersections
-		sInter << "Sphere " << pickID << " does not intersect any other objects!\n";
+		sInter << "Sphere " << id << " does not intersect any other objects!\n";
 	
 	cout << sInter.str(); // print out the intersection information
 	
@@ -681,6 +684,34 @@ void vis::updateDrawList() {
 }
 
 /**
+   slot that prints intersectiosn for all objects to standard output
+*/
+void vis::printAllIntersections() {
+
+	for(int i = 0; i < (int)objCentre.size(); i++) {
+		printIntersections(i);
+		cout << endl;
+	}
+
+	return;
+}
+
+/**
+   slot that updates coiDraw vector for all objects
+   if all objects are drawn then clear coiDraw vector else add missing coi to coiDraw
+*/
+void vis::drawAllIntersections() {
+	
+	if(coiDraw.size() == coi.size()) // case where all objects are drawn already
+		coiDraw.clear(); // empty vector
+	else // case where objects not all drawn
+		coiDraw = coi; // add all objects to draw list
+	
+	updateGL(); // render to screen
+	return;
+}
+
+/**
    Creates the context menu for a right click pick
 */
 void vis::createContextMenu() {
@@ -713,9 +744,18 @@ void vis::createContextMenu() {
 	menu.addAction(printAllIntersections);
 	menu.addAction(drawAllIntersections);
 	
+	// create QSignalMapper type to pass parameters to a slot
+	QSignalMapper *pickMapper = new QSignalMapper(this);
+	
 	// link each menu option to respective slot to control action
-	connect(printIntersections, SIGNAL(triggered()), this, SLOT(printIntersections()));
+	connect(printIntersections, SIGNAL(triggered()), pickMapper, SLOT(map()));
 	connect(drawIntersections, SIGNAL(triggered()), this, SLOT(updateDrawList()));
+	connect(printAllIntersections, SIGNAL(triggered()), this, SLOT(printAllIntersections()));
+	connect(drawAllIntersections, SIGNAL(triggered()), this, SLOT(drawAllIntersections()));
+	
+	// link the current pick id with the slot via mapper
+	pickMapper -> setMapping(printIntersections, pickID);
+	connect(pickMapper, SIGNAL(mapped(int)), this, SLOT(printIntersections(int)));
 	
 	// create context menu at cursor
 	menu.exec(QCursor::pos());

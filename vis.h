@@ -264,14 +264,27 @@ class vis: public QGLWidget {
 	
 	/**
 	   slot that prints intersections for currently selected object to standard output
+	   
+	   @param id id of currently selected object
 	*/
-	void printIntersections();
+	void printIntersections(int id);
 	
 	/**
 	   slot that updates coiDraw vector depending on currently selected object
 	*/
 	void updateDrawList();
-
+	
+	/**
+	   slot that prints intersections for all objects to standard output
+	*/
+	void printAllIntersections();
+	
+	/**
+	   slot that updates coiDraw vector for all objects
+	   if all objects are drawn then clear coiDraw vector else add missing coi to coiDraw
+	*/
+	void drawAllIntersections();
+	
 	protected:
 	
 	/**

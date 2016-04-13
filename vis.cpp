@@ -6,20 +6,22 @@
    @version 1.0 5/3/16
 */
 
-#include "vis.h"
-#include <QMouseEvent>
+#include "vis.h" // header file
+#include <QMouseEvent> // qt includes
 #include <QWheelEvent>
 #include <QKeyEvent>
 #include <QMenu>
 #include <QSignalMapper>
-#include <cmath> // for power & other math funcs
+#include <QDialog>
+#include <QSlider>
+#include <QPushButton>
+#include <QVBoxLayout>
+#include <cmath> // c++ includes
 #include <iostream>
-#include <fstream> // for file handling
+#include <fstream> 
 #include <string>
 #include <sstream>
 #include <iomanip>
-
-#include <QDebug> // USED FOR DEBUGGING
 
 // const defining number of points in one circle of a sphere
 #define CIRCLE_POINTS 100 
@@ -597,6 +599,74 @@ void vis::selectionCube(int id) {
 }
 
 /**
+   slot to control changing the colour of selected objects
+*/
+void vis::colChangeSlot() {
+
+}
+
+/**
+   slot to handle a change in the translider value
+*/
+void vis::transSliderChanged(int val) {
+	objColour.at(pickID).A = (double)val/100.0; // set new transparency
+	updateGL(); // redraw frame
+}
+
+/**
+   slot to control changing the transparency of selected objects
+*/
+void vis::transChangeSlot() {
+
+	// save initial transparency value, in case change cancelled
+	int startTrans = (int)(objColour.at(pickID).A*100);
+
+	// create the QDialog for changing transparency with title and x button
+	QDialog *transDialog = new QDialog(0);
+	transDialog->setWindowFlags(Qt::WindowCloseButtonHint);
+	// change title and create layout for dialog and set layout
+	transDialog->setWindowTitle("Change Transparency"); // set title
+	QVBoxLayout *transLayout = new QVBoxLayout; // create a new vertical layout
+	transLayout->addSpacerItem(new QSpacerItem(200, 0)); // spacer for layout
+	transLayout->setSizeConstraint(QLayout::SetFixedSize); // fix dialog size
+	transDialog->setLayout(transLayout); 
+	
+	// create the slider 
+	QSlider *transSlider = new QSlider;
+	transSlider->setRange(5,95);// range of values
+	transSlider->setSliderPosition(startTrans); // start position
+	transSlider->setOrientation(Qt::Horizontal); // orientations	
+	transSlider->setMaximumWidth(160); // fix sizer slide
+	transSlider->setMinimumWidth(160);
+		
+	// create confirm button
+	QPushButton *confirm = new QPushButton;
+	confirm->setText("Confirm");
+	confirm->setMaximumWidth(70); // format button width
+	
+	// add widgets to dialog
+	transDialog->layout()->addWidget(transSlider);
+	transDialog->layout()->addWidget(confirm);
+	
+	// align widgets centre
+	transDialog->layout()->setAlignment(confirm, Qt::AlignHCenter); 
+	transDialog->layout()->setAlignment(transSlider, Qt::AlignHCenter); 
+	 
+	// connect the widgets signals with slots to handle change
+	connect(transSlider, SIGNAL(valueChanged(int)), this, SLOT(transSliderChanged(int)));
+	connect(confirm, SIGNAL(clicked()), transDialog, SLOT(accept())); // closes window
+	
+	// handle the signal when "x" button pressed, reset value of transparency
+	// need a signal mapper to passes start trans value to transSliderChanged slot
+	QSignalMapper *transMapper = new QSignalMapper(this);	
+	connect(transDialog, SIGNAL(rejected()), transMapper, SLOT(map()));
+	transMapper->setMapping(transDialog, startTrans);
+	connect(transMapper, SIGNAL(mapped(int)), this, SLOT(transSliderChanged(int)));
+	
+	transDialog->show();
+}
+
+/**
    slot that prints intersectiosn for currently selected object to standard output
    
    @param id id of currently selected object
@@ -748,6 +818,7 @@ void vis::createContextMenu() {
 	QSignalMapper *pickMapper = new QSignalMapper(this);
 	
 	// link each menu option to respective slot to control action
+	connect(changeTransparency, SIGNAL(triggered()), this, SLOT(transChangeSlot()));
 	connect(printIntersections, SIGNAL(triggered()), pickMapper, SLOT(map()));
 	connect(drawIntersections, SIGNAL(triggered()), this, SLOT(updateDrawList()));
 	connect(printAllIntersections, SIGNAL(triggered()), this, SLOT(printAllIntersections()));

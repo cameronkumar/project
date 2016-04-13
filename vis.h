@@ -263,6 +263,21 @@ class vis: public QGLWidget {
 	public slots:
 	
 	/**
+	   slot to control changing the colour of selected objects
+	*/
+	void colChangeSlot();
+	
+	/**
+	   slot to handle a change in the translider value
+	*/
+	void transSliderChanged(int val);
+	
+	/**
+	   slot to control changing the transparency of selected objects
+	*/
+	void transChangeSlot();
+	
+	/**
 	   slot that prints intersections for currently selected object to standard output
 	   
 	   @param id id of currently selected object

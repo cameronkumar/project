@@ -115,7 +115,7 @@ class vis: public QGLWidget {
 	int setData(char* objData);
 	
 	/**
-	   populate the colours vector with a selection of RGB values
+	   populate the colours vector with a selection of RGB values and creates colour icons
 	*/
 	void initColours();
 	
@@ -227,6 +227,9 @@ class vis: public QGLWidget {
 	// holds the RGB colour options for objects
 	vector<Point> colour;
 	
+	// holds the QIcon types for each colour to be used in combobox
+	vector<QIcon*> colourIcon;
+	
 	// holds the starting position when the mouse is clicked
 	QPoint startPos;
 	
@@ -261,6 +264,11 @@ class vis: public QGLWidget {
 	int pickID;
 	
 	public slots:
+	
+	/**
+	   slot to set colour of selected object
+	*/
+	void setColSlot(int colID);
 	
 	/**
 	   slot to control changing the colour of selected objects

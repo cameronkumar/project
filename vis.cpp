@@ -14,6 +14,7 @@
 #include <QSignalMapper>
 #include <QDialog>
 #include <QSlider>
+#include <QComboBox>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <cmath> // c++ includes
@@ -203,17 +204,43 @@ int vis::setData(char* objData) {
 }	
 
 /**
-   populate the colours vector with a selection of RGB values
+   populate the colours vector with a selection of RGB values and creates colour icons
 */
 void vis::initColours() {
 	
+	// populate rgb colour vector
 	colour.push_back((Point){1.0, 0.0, 0.0}); // red (default)
 	colour.push_back((Point){0.0, 1.0, 0.0}); // green 
 	colour.push_back((Point){0.0, 0.0, 1.0}); // blue 
-	colour.push_back((Point){0.0, 1.0, 1.0}); // cyan	
+	colour.push_back((Point){0.2, 1.0, 1.0}); // cyan	
 	colour.push_back((Point){1.0, 0.0, 1.0}); // pink
 	colour.push_back((Point){1.0, 1.0, 0.0}); // yellow
+	colour.push_back((Point){1.0, 0.5, 0.0}); // orange
+	colour.push_back((Point){0.3, 0.3, 1.0}); // purple
+	colour.push_back((Point){0.5, 0.3, 0.0}); // brown
 	colour.push_back((Point){1.0, 1.0, 1.0}); // white
+	
+	// populate QIcon colour vector
+	QIcon *red = new QIcon("colours/red.png");
+	QIcon *green = new QIcon("colours/green.png");
+	QIcon *blue = new QIcon("colours/blue.png");
+	QIcon *cyan = new QIcon("colours/cyan.png");
+	QIcon *pink = new QIcon("colours/pink.png");
+	QIcon *yellow = new QIcon("colours/yellow.png");
+	QIcon *orange = new QIcon("colours/orange.png");
+	QIcon *purple = new QIcon("colours/purple.png");
+	QIcon *brown = new QIcon("colours/brown.png");
+	
+	
+	colourIcon.push_back(red);
+	colourIcon.push_back(green);
+	colourIcon.push_back(blue);
+	colourIcon.push_back(cyan);
+	colourIcon.push_back(pink);
+	colourIcon.push_back(yellow);
+	colourIcon.push_back(orange);
+	colourIcon.push_back(purple);
+	colourIcon.push_back(brown);
 	
 }
 
@@ -599,10 +626,78 @@ void vis::selectionCube(int id) {
 }
 
 /**
+   slot to set colour of selected object
+*/
+void vis::setColSlot(int colID) {
+	changeColour(pickID, colour.at(colID));
+	updateGL();
+}
+
+/**
    slot to control changing the colour of selected objects
 */
 void vis::colChangeSlot() {
-
+	
+	// save initial colour value, in case of dialog rejected
+	Point startCol = (Point){objColour.at(pickID).R, objColour.at(pickID).G,
+				 objColour.at(pickID).B};
+	int startColID = 0; // will hold the id of the colour object currently has
+	
+	// find the index of the original colour, need to do ifs for R, G, and B
+	for(int i = 0; i<(int)colour.size(); i++) {
+		if(startCol.x == colour.at(i).x)
+			if(startCol.y == colour.at(i).y)
+				if(startCol.z == colour.at(i).z)
+			 		startColID = i;		
+	}
+	
+	// create the QDialog for changing colour
+	QDialog *colDialog = new QDialog(0);
+	colDialog->setWindowFlags(Qt::WindowCloseButtonHint); // x button
+	// title change and create layout
+	colDialog->setWindowTitle("Change Colour"); // title
+	QVBoxLayout *colLayout = new QVBoxLayout; // vertical layout
+	colLayout->setSizeConstraint(QLayout::SetFixedSize); // fix size
+	colLayout->addSpacerItem(new QSpacerItem(150, 0)); // spacer for layout
+	colDialog->setLayout(colLayout);
+	
+	// create the combobox
+	QString colourString[9] = {"Red", "Green", "Blue", "Cyan", "Pink", "Yellow",
+				  "Orange", "Purple", "Brown"}; // used for item creation
+	QComboBox *colCombo = new QComboBox; // create our combobox
+	// populate combobox with icon and string items
+	for(int i = 0; i < 9; i++) {
+		colCombo->insertItem(i, colourString[i]);
+		colCombo->setItemIcon(i, *colourIcon.at(i));
+	}
+	colCombo->setCurrentIndex(startColID);
+	colCombo->setMinimumWidth(100); // formatting width
+	
+	// create the confirm button
+	QPushButton *confirm = new QPushButton;
+	confirm->setText("Confirm");
+	confirm->setMaximumWidth(70); // format button width
+	
+	// add widgets to dialog
+	colDialog->layout()->addWidget(colCombo);
+	colDialog->layout()->addWidget(confirm);
+	
+	// align widgets centre
+	colDialog->layout()->setAlignment(colCombo, Qt::AlignHCenter);
+	colDialog->layout()->setAlignment(confirm, Qt::AlignHCenter); 
+	
+	// connect signals for changes, acceptance and rejection with their slots
+	connect(colCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(setColSlot(int)));
+	connect(confirm, SIGNAL(clicked()), colDialog, SLOT(accept()));
+	
+	// handle rejection signals with signal mapper, pass original colour to setColSlot
+	QSignalMapper *colMapper = new QSignalMapper(this);	
+	connect(colDialog, SIGNAL(rejected()), colMapper, SLOT(map()));
+	colMapper->setMapping(colDialog, startColID);
+	connect(colMapper, SIGNAL(mapped(int)), this, SLOT(setColSlot(int)));
+	
+	colDialog->show(); // show the dialog
+	
 }
 
 /**
@@ -621,7 +716,7 @@ void vis::transChangeSlot() {
 	// save initial transparency value, in case change cancelled
 	int startTrans = (int)(objColour.at(pickID).A*100);
 
-	// create the QDialog for changing transparency with title and x button
+	// create the QDialog for changing transparency with x button
 	QDialog *transDialog = new QDialog(0);
 	transDialog->setWindowFlags(Qt::WindowCloseButtonHint);
 	// change title and create layout for dialog and set layout
@@ -818,6 +913,7 @@ void vis::createContextMenu() {
 	QSignalMapper *pickMapper = new QSignalMapper(this);
 	
 	// link each menu option to respective slot to control action
+	connect(changeColour, SIGNAL(triggered()), this, SLOT(colChangeSlot()));
 	connect(changeTransparency, SIGNAL(triggered()), this, SLOT(transChangeSlot()));
 	connect(printIntersections, SIGNAL(triggered()), pickMapper, SLOT(map()));
 	connect(drawIntersections, SIGNAL(triggered()), this, SLOT(updateDrawList()));

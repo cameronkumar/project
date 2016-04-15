@@ -209,6 +209,9 @@ class vis: public QGLWidget {
 	
 	private:
 	
+	// define number of points in one circle of a sphere
+	int circPoints;
+	
 	// holds the coordinate points for a standard sphere
 	vector<Point> spherePoints; 
 	
@@ -261,7 +264,7 @@ class vis: public QGLWidget {
 	xyCoord pickXY;
 	
 	// -1 if no object selected, else holds id of selected object
-	int pickID;
+	int pickID;	
 	
 	public slots:
 	

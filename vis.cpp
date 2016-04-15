@@ -24,8 +24,7 @@
 #include <sstream>
 #include <iomanip>
 
-// const defining number of points in one circle of a sphere
-#define CIRCLE_POINTS 100 
+#include <ctime>
 
 /**
    class constructor
@@ -107,15 +106,15 @@ void vis::drawSphere(Point centre, double radius) {
 			
 	// draw the strips of our sphere 
 	glBegin(GL_QUAD_STRIP);
-	// create CIRCLE_POINTS-1 quad primitive latitude strips
-	for(int i = 0; i < (CIRCLE_POINTS - 1); i++)  {
+	// create circPoints-1 quad primitive latitude strips
+	for(int i = 0; i < (circPoints - 1); i++)  {
 		/* creates quads between one sphere and sphere above has to include
 		the first point in sphere at start and at end hence why the for loop
-		does CIRCLE_POINTS+1 iterations */
-		for(int j = 0; j < (CIRCLE_POINTS + 1); j++)  {
+		does circPoints+1 iterations */
+		for(int j = 0; j < (circPoints + 1); j++)  {
 			// get points
-			Point lower = spherePoints.at((i * CIRCLE_POINTS) + (j % CIRCLE_POINTS));
-			Point upper = spherePoints.at(((i+1) * CIRCLE_POINTS) + (j % CIRCLE_POINTS));
+			Point lower = spherePoints.at((i * circPoints) + (j % circPoints));
+			Point upper = spherePoints.at(((i+1) * circPoints) + (j % circPoints));
 			// render vertices with normals, as the sphere points are for a sphere
 			// with radius 1 and centre (0,0,0), normal vector is just each sphere point
 			// interpretted as a vector
@@ -129,16 +128,17 @@ void vis::drawSphere(Point centre, double radius) {
 	
 	// fills the hole at the bottom of the sphere
 	glBegin(GL_POLYGON);
-	for(int i = 0; i < CIRCLE_POINTS; i++) {
+	for(int i = 0; i < circPoints; i++) {
 		Point p = spherePoints.at(i); // get point
 		glVertex3d(p.x, p.y, p.z); // render vertex
 	}
 	glEnd();
 	
+	
 	// fills the hole at the top of the sphere
 	glBegin(GL_POLYGON);
-	for(int i = 0; i < CIRCLE_POINTS; i++){
-		Point p = spherePoints.at(CIRCLE_POINTS * (CIRCLE_POINTS - 1) + i); // get point
+	for(int i = 0; i < circPoints; i++){
+		Point p = spherePoints.at(circPoints * (circPoints - 1) + i); // get point
 		glVertex3d(p.x, p.y, p.z); // render vertex
 	}
 	glEnd();
@@ -381,8 +381,6 @@ void vis::changeTransparency(int id, double alpha) {
 */
 void vis::calculateIntersection(int id, vector<idOverVecLen> inter) {
 	
-	stringstream sInter; // will hold human readable intersection details
-	sInter << setprecision(4); // setting precision for doubles
 	// get the centre coordinates and radius for calculations
 	Point cen = objCentre.at(id); 
 	double rad = objRadius.at(id);
@@ -503,9 +501,9 @@ void vis::drawCircle(intDraw circ) {
 	// standard circle of with radius 1 about (0, 0, 0) on y x-y plane
 	// as translation matrix has been set up above this will be drawn at position & orientation
 	glBegin(GL_LINE_LOOP);
-	for(int i = 0; i < CIRCLE_POINTS; i++) {		
+	for(int i = 0; i < circPoints; i++) {		
 		
-		double angle = ((double)i/(double)CIRCLE_POINTS)*2*M_PI; // calc current angle
+		double angle = ((double)i/(double)circPoints)*2*M_PI; // calc current angle
 			
 		// calc current point on polygon
 		Point p = (Point){sin(angle), cos(angle), 0.0};
@@ -935,8 +933,17 @@ void vis::createContextMenu() {
 */
 void vis::initializeGL() {
 
+	// determine the value of circpoints depending on how many objects to render
+	int sphereNumber[6] = {175, 150, 125, 100, 75, 50};
+	int circNumber[6] = {41, 45, 50, 58, 71, 100};
+	circPoints = 38; // value if over 175 objects
+	for(int i = 0; i < 6; i++) {
+		if((int)objCentre.size() <= sphereNumber[i])
+			circPoints = circNumber[i];
+	}	
+	
 	// initialise sphere and cube points
-	spherePoints = makeSpherePoints(CIRCLE_POINTS);
+	spherePoints = makeSpherePoints(circPoints);
 	cubePoints = makeCubePoints();
 	
 	// counter to hold each object's cois starting position in vector
@@ -1020,7 +1027,7 @@ void vis::resizeGL(int w, int h) {
    draws a new frame
 */ 
 void vis::paintGL() {
-
+	
 	glDrawBuffer(GL_BACK); // set to draw on back buffer then swap buffers
 	if(colourPicking == 0) {
 		
@@ -1123,7 +1130,7 @@ void vis::keyPressEvent(QKeyEvent *event) {
 	else if(key == Qt::Key_Minus) {// "-" button pressed
 		glScalef(0.9f, 0.9f, 0.9f); // zoom out
 		scaleFactor = scaleFactor*0.9; // update scale factor
-	}
+	} 
 		
 	event->accept(); // accepts the event
 	updateGL(); // redraw to screen

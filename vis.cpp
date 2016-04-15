@@ -209,38 +209,59 @@ int vis::setData(char* objData) {
 void vis::initColours() {
 	
 	// populate rgb colour vector
-	colour.push_back((Point){1.0, 0.0, 0.0}); // red (default)
-	colour.push_back((Point){0.0, 1.0, 0.0}); // green 
-	colour.push_back((Point){0.0, 0.0, 1.0}); // blue 
-	colour.push_back((Point){0.2, 1.0, 1.0}); // cyan	
-	colour.push_back((Point){1.0, 0.0, 1.0}); // pink
-	colour.push_back((Point){1.0, 1.0, 0.0}); // yellow
-	colour.push_back((Point){1.0, 0.5, 0.0}); // orange
-	colour.push_back((Point){0.3, 0.3, 1.0}); // purple
-	colour.push_back((Point){0.5, 0.3, 0.0}); // brown
-	colour.push_back((Point){1.0, 1.0, 1.0}); // white
+	colour.push_back((RGBA){1.0, 0.0, 0.0, 0.0}); // red (default)
+	colour.push_back((RGBA){0.86, 0.08, 0.24, 0.0}); // crimson
+	colour.push_back((RGBA){0.2, 0.8, 0.2, 0.0}); // lime 
+	colour.push_back((RGBA){0.0, 1.0, 0.0, 0.0}); // green 
+	colour.push_back((RGBA){0.0, 0.392, 0.0, 0.0}); // dark green 
+	colour.push_back((RGBA){0.0, 0.0, 1.0, 0.0}); // blue 
+	colour.push_back((RGBA){0.2, 1.0, 1.0, 0.0}); // cyan
+	colour.push_back((RGBA){0.0, 0.55, 0.55, 0.0}); // dark cyan	
+	colour.push_back((RGBA){1.0, 0.0, 1.0, 0.0}); // pink
+	colour.push_back((RGBA){1.0, 0.75, 0.8, 0.0}); // soft pink
+	colour.push_back((RGBA){1.0, 1.0, 0.0, 0.0}); // yellow
+	colour.push_back((RGBA){1.0, 0.5, 0.0, 0.0}); // orange
+	colour.push_back((RGBA){0.3, 0.3, 1.0, 0.0}); // purple
+	colour.push_back((RGBA){0.5, 0.3, 0.0, 0.0}); // brown
+	colour.push_back((RGBA){1.0, 0.84, 0.0, 0.0}); // gold
+	colour.push_back((RGBA){0.73, 0.73, 0.73, 0.0}); // grey
+	colour.push_back((RGBA){1.0, 1.0, 1.0, 0.0}); // white
 	
 	// populate QIcon colour vector
 	QIcon *red = new QIcon("colours/red.png");
+	QIcon *crimson = new QIcon("colours/crimson.png");
+	QIcon *lime = new QIcon("colours/lime.png");
 	QIcon *green = new QIcon("colours/green.png");
+	QIcon *darkgreen = new QIcon("colours/darkgreen.png");
 	QIcon *blue = new QIcon("colours/blue.png");
 	QIcon *cyan = new QIcon("colours/cyan.png");
+	QIcon *darkcyan = new QIcon("colours/darkcyan.png");
 	QIcon *pink = new QIcon("colours/pink.png");
+	QIcon *softpink = new QIcon("colours/softpink.png");
 	QIcon *yellow = new QIcon("colours/yellow.png");
 	QIcon *orange = new QIcon("colours/orange.png");
 	QIcon *purple = new QIcon("colours/purple.png");
 	QIcon *brown = new QIcon("colours/brown.png");
+	QIcon *gold = new QIcon("colours/gold.png");
+	QIcon *grey = new QIcon("colours/grey.png");
 	
 	
 	colourIcon.push_back(red);
+	colourIcon.push_back(crimson);
+	colourIcon.push_back(lime);
 	colourIcon.push_back(green);
+	colourIcon.push_back(darkgreen);
 	colourIcon.push_back(blue);
 	colourIcon.push_back(cyan);
+	colourIcon.push_back(darkcyan);
 	colourIcon.push_back(pink);
+	colourIcon.push_back(softpink);
 	colourIcon.push_back(yellow);
 	colourIcon.push_back(orange);
 	colourIcon.push_back(purple);
 	colourIcon.push_back(brown);
+	colourIcon.push_back(gold);
+	colourIcon.push_back(grey);
 	
 }
 
@@ -357,10 +378,10 @@ vector<int> vis::sphereOrder() {
    @param id identifier of object whose colour we want to change
    @param rgb colour we want to change the object to
 */
-void vis::changeColour(int id, Point rgb) {
-	objColour.at(id).R = rgb.x;
-	objColour.at(id).G = rgb.y;
-	objColour.at(id).B = rgb.z;
+void vis::changeColour(int id, RGBA rgb) {
+	objColour.at(id).R = rgb.R;
+	objColour.at(id).G = rgb.G;
+	objColour.at(id).B = rgb.B;
 }
 
 /**
@@ -643,10 +664,11 @@ void vis::colChangeSlot() {
 	
 	// find the index of the original colour, need to do ifs for R, G, and B
 	for(int i = 0; i<(int)colour.size(); i++) {
-		if(startCol.x == colour.at(i).x)
-			if(startCol.y == colour.at(i).y)
-				if(startCol.z == colour.at(i).z)
-			 		startColID = i;		
+		if(startCol.x == colour.at(i).R) {
+			if(startCol.y == colour.at(i).G)
+				if(startCol.z == colour.at(i).B)
+			 		startColID = i;	
+		}	
 	}
 	
 	// create the QDialog for changing colour
@@ -660,11 +682,12 @@ void vis::colChangeSlot() {
 	colDialog->setLayout(colLayout);
 	
 	// create the combobox
-	QString colourString[9] = {"Red", "Green", "Blue", "Cyan", "Pink", "Yellow",
-				  "Orange", "Purple", "Brown"}; // used for item creation
+	QString colourString[16] = {"Red", "Crimson", "Lime", "Green", "Dark Green", "Blue", "Cyan", 
+				   "Dark Cyan", "Pink", "Soft Pink", "Yellow", "Orange", "Purple", 
+				   "Brown", "Gold", "Grey"}; // used for item creation
 	QComboBox *colCombo = new QComboBox; // create our combobox
 	// populate combobox with icon and string items
-	for(int i = 0; i < 9; i++) {
+	for(int i = 0; i < 16; i++) {
 		colCombo->insertItem(i, colourString[i]);
 		colCombo->setItemIcon(i, *colourIcon.at(i));
 	}
@@ -995,9 +1018,9 @@ void vis::initializeGL() {
 	
 	// temp colouring options
 	for(int i = 0; i < (int)objCentre.size(); i++) {
-		objColour.at(i).R = colour.at(i%6).x;
-		objColour.at(i).G = colour.at(i%6).y;
-		objColour.at(i).B = colour.at(i%6).z;
+		objColour.at(i).R = colour.at(i%6).R;
+		objColour.at(i).G = colour.at(i%6).G;
+		objColour.at(i).B = colour.at(i%6).B;
 	}
 	
 }

@@ -141,7 +141,7 @@ class vis: public QGLWidget {
 	   @param id identifier of object whose colour we want to change
 	   @param rgb colour we want to change the object to
 	*/
-	void changeColour(int id, Point rgb);
+	void changeColour(int id, RGBA rgb);
 	
 	/**
 	   Changes the transparency value of object to alpha value provided
@@ -228,7 +228,7 @@ class vis: public QGLWidget {
 	vector<RGBA> objColour;
 	
 	// holds the RGB colour options for objects
-	vector<Point> colour;
+	vector<RGBA> colour;
 	
 	// holds the QIcon types for each colour to be used in combobox
 	vector<QIcon*> colourIcon;

@@ -207,6 +207,18 @@ class vis: public QGLWidget {
 	*/
 	void createContextMenu();
 	
+	/**
+	   Creates the dialog pop-up for scroll mode
+	*/
+	void createScrollDialog();
+	
+	/**
+	   Scroll mode command to move selection to next object
+	   
+	   @param delta the rotation amount of the scroll wheel
+	*/
+	void scroll(float delta);
+	
 	private:
 	
 	// define number of points in one circle of a sphere
@@ -264,7 +276,13 @@ class vis: public QGLWidget {
 	xyCoord pickXY;
 	
 	// -1 if no object selected, else holds id of selected object
-	int pickID;	
+	int pickID;
+	
+	// holds the original colour and transparency value of objects
+	vector<RGBA> scrollHold;
+	
+	// flag, indicates whether the program is in scroll mode
+	int scrollFlag;
 	
 	public slots:
 	

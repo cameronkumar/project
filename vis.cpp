@@ -16,6 +16,7 @@
 #include <QSlider>
 #include <QComboBox>
 #include <QPushButton>
+#include <QLabel>
 #include <QVBoxLayout>
 #include <cmath> // c++ includes
 #include <iostream>
@@ -952,6 +953,44 @@ void vis::createContextMenu() {
 }
 
 /**
+   Scroll mode command to move selection to next object
+   
+   @param delta the rotation amount of the scroll wheel
+*/
+void vis::scroll(float delta) {
+
+	// if not in scroll mode already, save rgba properties and setup scroll mode
+	if(scrollFlag==0) {
+		scrollHold = objColour;
+		for(int i = 0; i < (int)objColour.size(); i++) // lower transparency of all objects
+			objColour.at(i).A = 0.18; 
+	} else // set previous objects transparency back to low transparency
+		objColour.at(pickID).A = 0.18; 
+		
+	scrollFlag=1; // set flag
+			
+	if(delta > 0.0) { // wheel scrolled forward
+	
+		if(pickID != (int)objCentre.size()-1) // normal case
+			pickID++;
+		else // last object in vector selected case
+			pickID = 0;
+			
+	} else { // wheel scrolled backwards
+	
+		if(pickID!=0) // normal case
+			pickID--;
+		else // first object in vector case
+			pickID = (int)objCentre.size()-1;
+	}
+	
+	// set currently selected objects transparency to near opaque
+	objColour.at(pickID).A = 0.95;
+	
+	updateGL(); // redraw cube
+}
+
+/**
    initialises environment for OpenGL rendering when instance called
 */
 void vis::initializeGL() {
@@ -995,6 +1034,7 @@ void vis::initializeGL() {
 	trans = 0; // initialise translation flag
 	colourPicking = 0; // initialise colour picking flag
 	pickID = -1; // initialise selected object variable
+	scrollFlag = 0; // initialize scroll mode flag, set false
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when rendering
 	QGLWidget::setAutoBufferSwap(false); // dont autoswap buffers, needed for picking
@@ -1056,6 +1096,15 @@ void vis::paintGL() {
 		
 		// create the render order
 		vector<int> renderOrder = sphereOrder();
+		// if in scroll mode, need to reorder so the selected is the first object rendered
+		if(scrollFlag == 1) {
+			for(int i = 0; i < (int)renderOrder.size(); i++) // find and erase current pos
+				if(renderOrder.at(i) == pickID)
+					renderOrder.erase(renderOrder.begin() + i);
+			renderOrder.insert(renderOrder.begin(), pickID); // put at start of order
+				
+		}
+			
 	
 		// clearing screen first
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1116,23 +1165,29 @@ void vis::paintGL() {
    @param event information about the mouse button click
 */
 void vis::wheelEvent(QWheelEvent *event) {
-
-	// deg +120 for one roll forward, -120 for one roll back, read this here
-	float deg = (float)event->delta();
-	deg = deg/120.0; // deg now number of scrolls in + or - dir'n
 	
-	glMatrixMode(GL_PROJECTION); // change to projection matrix
-	if(deg > 0.0) {// wheel scrolled forward
-		glScalef(pow(1.1, deg), pow(1.1, deg), pow(1.1, deg)); 
-		scaleFactor = scaleFactor*pow(1.1, deg); // update scale factor
-	}
-	else {// wheel scrolled backward
-		glScalef(pow(0.9, -deg), pow(0.9, -deg), pow(0.9, -deg));
-		scaleFactor = scaleFactor*pow(0.9, -deg); // update scale factor
-	}
 	
-	event->accept(); // accepts the event
-	updateGL(); // redraw to screen
+	if(pickID!=-1) { // allow for scrolling objects when an object selected
+		scroll(event->delta()); // pass to scroll function				
+	} else { // zoom case
+	
+		// deg +120 for one roll forward, -120 for one roll back, read this here
+		float deg = (float)event->delta();
+		deg = deg/120.0; // deg now number of scrolls in + or - dir'n
+	
+		glMatrixMode(GL_PROJECTION); // change to projection matrix
+		if(deg > 0.0) {// wheel scrolled forward
+			glScalef(pow(1.1, deg), pow(1.1, deg), pow(1.1, deg)); 
+			scaleFactor = scaleFactor*pow(1.1, deg); // update scale factor
+		}
+		else {// wheel scrolled backward
+			glScalef(pow(0.9, -deg), pow(0.9, -deg), pow(0.9, -deg));
+			scaleFactor = scaleFactor*pow(0.9, -deg); // update scale factor
+		}
+	
+		event->accept(); // accepts the event
+		updateGL(); // redraw to screen
+	}
 }
 
 /**
@@ -1144,16 +1199,43 @@ void vis::wheelEvent(QWheelEvent *event) {
 void vis::keyPressEvent(QKeyEvent *event) {
 	
 	int key = event->key(); // get the integer value of key pressed
-	
 	glMatrixMode(GL_PROJECTION); // change to projection matrix
+	
 	if(key == Qt::Key_Equal) { // "+" button pressed
-		glScalef(1.1f, 1.1f, 1.1f); // zoom in 
-		scaleFactor = scaleFactor*1.1; // update scale factor
+	
+		if(pickID == -1) { // nothing selected
+			glScalef(1.1f, 1.1f, 1.1f); // zoom in 
+			scaleFactor = scaleFactor*1.1; // update scale factor
+		} else  // scroll mode, scroll selected
+			scroll(1.0);
+		
+	} else if(key == Qt::Key_Minus) {// "-" button pressed
+	
+		if(pickID == -1) { // nothing selected
+			glScalef(0.9f, 0.9f, 0.9f); // zoom out
+			scaleFactor = scaleFactor*0.9; // update scale factor
+		} else
+			scroll(-1.0);
+		
+	} else if(key == Qt::Key_Space) { // select in scroll mode
+	
+		if(scrollFlag == 1) { // if in scroll mode
+			scrollFlag = 0; // deset scroll flag
+			objColour = scrollHold; // reset transparencies
+			updateGL(); // redraw frame
+			createContextMenu(); // spawn context menu for selected
+		}
+		
+	} else if(key == Qt::Key_Escape) {// quit scroll mode without selection
+	
+		if(scrollFlag == 1) { // if in scroll mode
+			scrollFlag = 0; // deset scroll flag
+			objColour = scrollHold; // reset transparencies
+			pickID=-1; // deselect item
+			updateGL(); // redraw object without selection cube
+		}
+		
 	}
-	else if(key == Qt::Key_Minus) {// "-" button pressed
-		glScalef(0.9f, 0.9f, 0.9f); // zoom out
-		scaleFactor = scaleFactor*0.9; // update scale factor
-	} 
 		
 	event->accept(); // accepts the event
 	updateGL(); // redraw to screen
@@ -1222,7 +1304,7 @@ void vis::mouseReleaseEvent(QMouseEvent *event) {
 		if(trans==1){ // case of translation currently taking place
 			trans = 0; // reset translation flag to 0 as it has ended
 		}
-		else { // case of picking
+		else if(scrollFlag!=1) { // case of picking when scroll mode not enabled
 			colourPicking = 1; // set colour picking flag
 			pickXY = (xyCoord){event->x(), event->y()}; // save mouse location
 			updateGL(); // render for colour picking

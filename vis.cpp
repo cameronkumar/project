@@ -20,13 +20,13 @@
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <cmath> // c++ includes
+#include <vector>
 #include <iostream>
 #include <fstream> 
 #include <string>
 #include <sstream>
 #include <iomanip>
 #include <ctime>
-#include <utility>
 
 /**
    class constructor
@@ -158,7 +158,7 @@ int vis::setData(char* objData) {
 	
 	double x, y, z, rad; // will temporarily hold file inputs
 	int gen; // holds the generation value for inputs
-	char key; // holds the key value for inputs
+	string key; // holds the key value for inputs
 	int i = 0; // counter for error output
 	
 	ifstream dataFile(objData);
@@ -258,7 +258,7 @@ void vis::initColours() {
    @param list list to be searched
    @return 1 if true, else 0
 */
-int vis::valPresent(char val, vector<char> list) {
+int vis::valPresent(string val, vector<string> list) {
 	
 	int present = 0; // flag to declare if item present or not
 	
@@ -275,9 +275,9 @@ int vis::valPresent(char val, vector<char> list) {
    
    @return vector containing all unique key values
 */
-vector<char> vis::getKeyList() {
+vector<string> vis::getKeyList() {
 
-	vector<char> list; // list of unique key values to be returned
+	vector<string> list; // list of unique key values to be returned
 
 	// add key to list if not present already
 	for(int i = 0; i < (int)objGenKey.size(); i++) 
@@ -667,6 +667,220 @@ void vis::selectionCube(int id) {
 }
 
 /**
+   Creates the context menu for a right click pick
+*/
+void vis::createContextMenu() {
+	
+	QMenu menu; // create the menu widget
+	
+	// create menu actions, these will be the options on our menu
+	QAction* changeColour = new QAction("Change Colour", this);
+	QAction* changeTransparency = new QAction("Change Transparency", this);
+	QAction* printIntersections = new QAction("Print Intersections", this);
+	QAction* drawIntersections = new QAction("Draw Intersections", this);
+	QAction* printAllIntersections = new QAction("Print All Intersections", this);
+	QAction* drawAllIntersections = new QAction("Draw All Intersections", this);
+	QAction* slideshowMode = new QAction("Slideshow Mode", this);
+	
+	// if no particular object selected disable object specific options
+	if(pickID == -1) { 
+		changeColour->setEnabled(0);
+		changeTransparency->setEnabled(0);
+		printIntersections->setEnabled(0);
+		drawIntersections->setEnabled(0);	
+	}
+	
+	// populate menu with actions and seperators
+	menu.addAction(changeColour);
+	menu.addAction(changeTransparency);
+	menu.addSeparator();
+	menu.addAction(printIntersections);
+	menu.addAction(drawIntersections);
+	menu.addSeparator();
+	menu.addAction(printAllIntersections);
+	menu.addAction(drawAllIntersections);
+	menu.addSeparator();
+	menu.addAction(slideshowMode);
+	
+	// create QSignalMapper type to pass parameters to a slot
+	QSignalMapper *pickMapper = new QSignalMapper(this);
+	
+	// link each menu option to respective slot to control action
+	connect(changeColour, SIGNAL(triggered()), this, SLOT(colChangeSlot()));
+	connect(changeTransparency, SIGNAL(triggered()), this, SLOT(transChangeSlot()));
+	connect(printIntersections, SIGNAL(triggered()), pickMapper, SLOT(map()));
+	connect(drawIntersections, SIGNAL(triggered()), this, SLOT(updateDrawList()));
+	connect(printAllIntersections, SIGNAL(triggered()), this, SLOT(printAllIntersections()));
+	connect(drawAllIntersections, SIGNAL(triggered()), this, SLOT(drawAllIntersections()));
+	connect(slideshowMode, SIGNAL(triggered()), this, SLOT(createSlideDialog()));
+	
+	// link the current pick id with the slot via mapper
+	pickMapper -> setMapping(printIntersections, pickID);
+	connect(pickMapper, SIGNAL(mapped(int)), this, SLOT(printIntersections(int)));
+	
+	// create context menu at cursor
+	menu.exec(QCursor::pos());
+	
+	return;	
+}
+
+/**
+   Scroll mode command to move selection to next object
+   
+   @param delta the rotation amount of the scroll wheel
+*/
+void vis::scroll(float delta) {
+
+	// if not in scroll mode already, save rgba properties and setup scroll mode
+	if(scrollFlag==0) {
+		RGBAHold = objColour;
+		for(int i = 0; i < (int)objColour.size(); i++) // lower transparency of all objects
+			objColour.at(i).A = 0.18; 
+	} else // set previous objects transparency back to low transparency
+		objColour.at(pickID).A = 0.18; 
+		
+	scrollFlag=1; // set flag
+			
+	if(delta > 0.0) { // wheel scrolled forward
+	
+		if(pickID != (int)objCentre.size()-1) // normal case
+			pickID++;
+		else // last object in vector selected case
+			pickID = 0;
+			
+	} else { // wheel scrolled backwards
+	
+		if(pickID!=0) // normal case
+			pickID--;
+		else // first object in vector case
+			pickID = (int)objCentre.size()-1;
+	}
+	
+	// set currently selected objects transparency to near opaque
+	objColour.at(pickID).A = 0.95;
+	
+	updateGL(); // redraw cube
+}
+
+/**
+   Function to print specific intersection between two objects and add interstion
+   to draw list
+   
+   @param a index of first sphere
+   @param b index of second sphere
+*/
+void vis::handleIntersection(int a, int b) {
+	
+	// print intersection first, initialize iterator
+	vector<intDraw>::iterator it = coi.begin();
+	advance(it, coiBegin.at(a)); // move to a positon
+	int intFlag = 0; // flag that indicates whether intersection present
+	stringstream sInter; // string stream to hold intersection output string
+	
+	if(it!=coi.end()) { // error check
+		intDraw itCoi = *it; // get coi at positon
+		// loop through coi vector until intersection found or end of intersections
+		while(itCoi.id1 == a && intFlag == 0) {
+		
+			if(itCoi.id2 == b) { // if specific intersection found
+			
+				if(itCoi.rad == 0.0)  // tangent case
+					sInter << "Sphere " << itCoi.id1 << " is tangent to sphere " 
+				               << itCoi.id2 << " at point (" << itCoi.cen.x << 
+				               ", " << itCoi.cen.y << ", " << itCoi.cen.z << ")\n";
+				else // intersection case
+					sInter << "Sphere " << itCoi.id1 << " intersects sphere " 
+				     	       << itCoi.id2  << " with circle of intersection located about (" 
+				     	       << itCoi.cen.x << ", " << itCoi.cen.y << ", " << itCoi.cen.z 
+				     	       << ") with radius " << itCoi.rad << "\n";
+				intFlag = 1; // intersection occurs, set flag	
+				
+			} else { // if intersection not found
+			
+				it++; // iterate iterator
+				itCoi = *it; // get new coi
+		
+			}
+		}
+		
+		if(intFlag == 0) // if no intersection occurs
+			sInter << "No intersection occurs between sphere " << a << 
+			       " and sphere " << b << "\n";
+	}
+	
+	// print intersection information
+	cout << sInter.str() << endl;
+	
+	// add circle of intersection to draw list 
+	drawCircle(*it);
+	
+	return;
+}
+
+/** 
+   resets all variables back to normal when slideshow mode ends
+*/
+void vis::stopSlideshow() {
+
+	slideshowFlag = 0; // reset flag
+	objColour = RGBAHold; // reset transparencies
+	coiDraw = coiDrawHold; // reset drawn intersetions
+	keySphereList.clear(); // reset vectors
+	keyPairList.clear(); // reset vectors
+
+}
+
+/**
+   Function that makes to program wait for specified number of seconds
+	   
+   @param s number of seconds to wait
+*/
+void vis::waitFunc(int s) {
+
+	clock_t start, end; // two clock vars for timing
+	start = clock(); // get current time
+	end = clock(); // initialize counter clock
+	while((double)(end-start)/CLOCKS_PER_SEC < s) // wait program s seconds
+		end = clock();
+		
+}
+
+/**
+   Function to set up drawing of next slide to screen in slideshow mode
+*/
+void vis::createSlide() {
+	
+	// clear drawlist for last slide
+	coiDraw.clear();
+	// reset transparencies
+	for(int i = 0; i < (int)keySphereList.size(); i++)
+		objColour.at(keySphereList.at(i)).A = 0.05;
+	
+	// individual mode case, set transparency for current slide, print and draw intersections
+	if(slideData.group == 0) {
+	
+		objColour.at(keySphereList.at(keyListPos)).A = 0.95; // set transparency 
+		printIntersections(keySphereList.at(keyListPos)); // print intersections
+		// to draw intersections we need to select, call draw function and deselect object
+		pickID = keySphereList.at(keyListPos);
+		updateDrawList();
+		pickID = -1;	
+		
+	// pair mode case, set transparencies, print intersection between objects and draw	
+	} else { 
+		
+		intPair slidePair = keyPairList.at(keyListPos); // get pair
+		objColour.at(slidePair.x).A = 0.95; // set transparencies
+		objColour.at(slidePair.y).A = 0.95;
+		handleIntersection(slidePair.x, slidePair.y); // pass to function to handle intersection
+		
+	}
+	
+	keyListPos++; // increment key list position
+	return;
+}
+
+/**
    slot to set colour of selected object
 */
 void vis::setColSlot(int colID) {
@@ -818,6 +1032,7 @@ void vis::printIntersections(int id) {
 	// initalise iterator for looping through coi, starting at coiBegin location for id
 	vector<intDraw>::iterator it = coi.begin();
 	advance(it, coiBegin.at(id));
+	int interFlag = 0; // flag to indicate if an intersection occurs
 	
 	if(it!=coi.end()) {
 		intDraw itCoi = *it; // get coi at positon
@@ -832,10 +1047,15 @@ void vis::printIntersections(int id) {
 				       << " with circle of intersection located about (" << itCoi.cen.x << ", " 
 				       << itCoi.cen.y << ", " << itCoi.cen.z << ") with radius " << itCoi.rad << "\n";
 		
+			interFlag = 1;
 			it++; // iterate iterator
 			itCoi = *it; // get new coi
 		}
 	}
+	
+	// if no intersections take place and not in slideshow mode, write no intersections
+	if(interFlag==0 && slideshowFlag == 0) 
+		sInter << "Sphere " << id << " does not intersect with any other objects!\n";
 	
 	sInter << endl; // add some spacing
 	
@@ -916,199 +1136,6 @@ void vis::drawAllIntersections() {
 }
 
 /**
-   Function to print specific intersection between two objects and add interstion
-   to draw list
-   
-   @param a index of first sphere
-   @param b index of second sphere
-*/
-void vis::handleIntersection(int a, int b) {
-	
-	// print intersection first, initialize iterator
-	vector<intDraw>::iterator it = coi.begin();
-	advance(it, coiBegin.at(a)); // move to a positon
-	int intFlag = 0; // flag that indicates whether intersection present
-	stringstream sInter; // string stream to hold intersection output string
-	
-	if(it!=coi.end()) { // error check
-		intDraw itCoi = *it; // get coi at positon
-		// loop through coi vector until intersection found or end of intersections
-		while(itCoi.id1 == a && intFlag == 0) {
-		
-			if(itCoi.id2 == b) { // if specific intersection found
-			
-				if(itCoi.rad == 0.0)  // tangent case
-					sInter << "Sphere " << itCoi.id1 << " is tangent to sphere " 
-				               << itCoi.id2 << " at point (" << itCoi.cen.x << 
-				               ", " << itCoi.cen.y << ", " << itCoi.cen.z << ")\n";
-				else // intersection case
-					sInter << "Sphere " << itCoi.id1 << " intersects sphere " 
-				     	       << itCoi.id2  << " with circle of intersection located about (" 
-				     	       << itCoi.cen.x << ", " << itCoi.cen.y << ", " << itCoi.cen.z 
-				     	       << ") with radius " << itCoi.rad << "\n";
-				intFlag = 1; // intersection occurs, set flag	
-				
-			} else { // if intersection not found
-			
-				it++; // iterate iterator
-				itCoi = *it; // get new coi
-		
-			}
-		}
-		
-		if(intFlag == 0) // if no intersection occurs
-			sInter << "No intersection occurs between sphere " << a << 
-			       " and sphere " << b << "\n";
-	}
-	
-	// print intersection information
-	cout << sInter.str() << endl;
-	
-	// add circle of intersection to draw list 
-	drawCircle(*it);
-	
-	return;
-}
-
-/** 
-   resets all variables back to normal when slideshow mode ends
-*/
-void vis::stopSlideshow() {
-
-	slideshowMode = 0; // reset flag
-	objColour = RGBAHold; // reset transparencies
-	coiDraw = coiDrawHold; // reset drawn intersetions
-	keySphereList.clear(); // reset vectors
-	keyPairList.clear(); // reset vectors
-
-}
-
-/**
-   Function to set up drawing of next slide to screen in slideshow mode
-*/
-void vis::createSlide() {
-	
-	// clear drawlist for last slide
-	coiDraw.clear();
-	// reset transparencies
-	for(int i = 0; i < (int)keySphereList.size(); i++)
-		objColour.at(keySphereList.at(i)).A = 0.05;
-	
-	// individual mode case, set transparency for current slide, print and draw intersections
-	if(slideData.group == 0) {
-	
-		objColour.at(keySphereList.at(keyListPos)).A = 0.95; // set transparency 
-		printIntersections(keySphereList.at(keyListPos)); // print intersections
-		// to draw intersections we need to select, call draw function and deselect object
-		pickID = keySphereList.at(keyListPos);
-		updateDrawList();
-		pickID = -1;	
-		
-	// pair mode case, set transparencies, print intersection between objects and draw	
-	} else { 
-		
-		intPair slidePair = keyPairList.at(keyListPos); // get pair
-		objColour.at(slidePair.x).A = 0.95; // set transparencies
-		objColour.at(slidePair.y).A = 0.95;
-		handleIntersection(slidePair.x, slidePair.y); // pass to function to handle intersection
-		
-	}
-	
-	keyListPos++; // increment key list position
-	return;
-}
-
-/**
-   Slot that sets up program for slideshow mode
-*/
-void vis::setSlideshow() {
-
-	// save initial RGBA values and draw list of all objects
-	RGBAHold = objColour;
-	coiDrawHold = coiDraw;
-	
-	// set the slideshow mode flag and set key list position to 0
-	slideshowMode = 1;	
-	keyListPos = 0;	
-	
-	// get list of objects with key value specified 
-	for(int i = 0; i < (int)objGenKey.size(); i++) 
-		if(objGenKey.at(i).key == slideData.key) 
-			keySphereList.push_back(i); // add to key list
-	
-	if(slideData.group == 1) { // if pair mode selected
-	
-		if((int)keySphereList.size() == 1) {// error catching, cant do pairs if solo object!
-			cout << "Error! Only One Object Exists With Specified Key!\n";
-			stopSlideshow(); // exit slideshow mode
-			return;
-		} else { // create list of pairs
-			for(int i = 0; i < (int)keySphereList.size() - 1; i++) // scroll through objects making pairs
-				for(int j = i + 1; j < (int)keySphereList.size(); j++)
-					keyPairList.push_back((intPair){keySphereList.at(i),keySphereList.at(j)});
-		}		
-	}
-	
-	// either create first slide and draw to screen if keypress mode
-	if(slideData.trans == 0) {
-		createSlide();
-		updateGL();
-	} else { // if timer mode
-	
-		clock_t start, end; // variables used for timing
-		// create and draw first slide
-		createSlide();
-		updateGL();
-		
-		// get the number of loops required
-		int numSlides;
-		if(slideData.group == 0) 
-			numSlides = (int)keySphereList.size();
-		else
-			numSlides = (int)keyPairList.size();
-		
-		// loop through remaining slides on timer
-		while(keyListPos!=numSlides) {
-			start = clock(); // get current time
-			end = clock(); // initialize
-			while(end-start/CLOCKS_PER_SEC < 30) // wait program
-				end = clock();
-			createSlide();
-			updateGL();
-		}
-	}
-	
-	return;
-}
-
-/**
-   Slot that handles value changes in the key combo box
-*/
-void vis::keyChange(QString key) {
-	string keyVal = key.toStdString();
-	slideData.key = keyVal[0];
-}
-
-/**
-   Slot that handles value changes in the transition combo box
-*/
-void vis::transChange(QString trans) {
-	int transVal;
-	(trans == "Key Press") ? (transVal = 0) : (transVal = 1);
-	slideData.trans = transVal;
-}
-
-/**
-   Slot that handles value changes in the group combo box
-*/
-void vis::groupChange(QString group) {
-	int groupVal;
-	(group == "Individual") ? (groupVal = 0) : (groupVal = 1);
-	slideData.group = groupVal;
-}
-
-
-/**
    Slot that creates the dialog that gets user parameters for slideshow mode
 */
 void vis::createSlideDialog() {
@@ -1131,7 +1158,7 @@ void vis::createSlideDialog() {
 	// create the key combobox and then add to the layout
 	QComboBox *keyCombo = new QComboBox;
 	for(int i = 0; i < (int)key.size(); i++)
-		keyCombo->insertItem(i, QString(key.at(i)));
+		keyCombo->insertItem(i, QString::fromStdString(key.at(i)));
 	keyCombo->setMinimumWidth(120);
 	comboLayout->addWidget(keyCombo, 1, 2, Qt::AlignHCenter);
 	
@@ -1160,12 +1187,12 @@ void vis::createSlideDialog() {
 	slideLayout->setAlignment(confirm, Qt::AlignHCenter); 
 	slideDialog->setLayout(slideLayout);
 	
-	// create a variable storing user selected parameters
+	// create a variable storing user selected parameters, transition and group data stored as int
 	int transVal, groupVal;
 	(transCombo->currentText() == "Key Press") ? (transVal = 0) : (transVal = 1);
 	(groupCombo->currentText() == "Individual") ? (groupVal = 0) : (groupVal = 1);
 	string keyVal = keyCombo->currentText().toStdString(); // get key from combo as a string
-	slideData = (slideParam){keyVal[0], transVal, groupVal}; // create slide data var
+	slideData = (slideParam){keyVal, transVal, groupVal}; // create slide data var
 	
 	// connecting change in combobox values to trigger change in slideData
 	connect(keyCombo, SIGNAL(currentIndexChanged(QString)), this, SLOT(keyChange(QString)));
@@ -1176,104 +1203,98 @@ void vis::createSlideDialog() {
 	connect(confirm, SIGNAL(pressed()), slideDialog, SLOT(accept()));
 	connect(slideDialog, SIGNAL(accepted()), this, SLOT(setSlideshow()));
 	
-	slideDialog->show(); // show context menu
-	
+	slideDialog->show(); // show slideshow mode dialog
 }
 
 /**
-   Creates the context menu for a right click pick
+   Slot that sets up program for slideshow mode
 */
-void vis::createContextMenu() {
+void vis::setSlideshow() {
+
+	// save initial RGBA values and draw list of all objects
+	RGBAHold = objColour;
+	coiDrawHold = coiDraw;
 	
-	QMenu menu; // create the menu widget
+	// set the slideshow mode flag and set key list position to 0
+	slideshowFlag = 1;	
+	keyListPos = 0;	
+	pickID = -1; // deselect object
 	
-	// create menu actions, these will be the options on our menu
-	QAction* changeColour = new QAction("Change Colour", this);
-	QAction* changeTransparency = new QAction("Change Transparency", this);
-	QAction* printIntersections = new QAction("Print Intersections", this);
-	QAction* drawIntersections = new QAction("Draw Intersections", this);
-	QAction* printAllIntersections = new QAction("Print All Intersections", this);
-	QAction* drawAllIntersections = new QAction("Draw All Intersections", this);
-	QAction* slideshowMode = new QAction("Slideshow Mode", this);
+	// get list of objects with key value specified 
+	for(int i = 0; i < (int)objGenKey.size(); i++) 
+		if(objGenKey.at(i).key == slideData.key) 
+			keySphereList.push_back(i); // add to key list
 	
-	// if no particular object selected disable object specific options
-	if(pickID == -1) { 
-		changeColour->setEnabled(0);
-		changeTransparency->setEnabled(0);
-		printIntersections->setEnabled(0);
-		drawIntersections->setEnabled(0);	
+	if(slideData.group == 1) { // if pair mode selected
+	
+		if((int)keySphereList.size() == 1) {// error catching, cant do pairs if solo object!
+			cout << "Error! Only One Object Exists With Specified Key!\n";
+			stopSlideshow(); // exit slideshow mode
+			return;
+		} else { // create list of pairs
+			for(int i = 0; i < (int)keySphereList.size() - 1; i++) // scroll through objects making pairs
+				for(int j = i + 1; j < (int)keySphereList.size(); j++)
+					keyPairList.push_back((intPair){keySphereList.at(i),keySphereList.at(j)});
+		}		
 	}
 	
-	// populate menu with actions and seperators
-	menu.addAction(changeColour);
-	menu.addAction(changeTransparency);
-	menu.addSeparator();
-	menu.addAction(printIntersections);
-	menu.addAction(drawIntersections);
-	menu.addSeparator();
-	menu.addAction(printAllIntersections);
-	menu.addAction(drawAllIntersections);
-	menu.addSeparator();
-	menu.addAction(slideshowMode);
+	// either create first slide and draw to screen if keypress mode
+	if(slideData.trans == 0) {
+		createSlide();
+		updateGL();
+	} else { // if timer mode
 	
-	// create QSignalMapper type to pass parameters to a slot
-	QSignalMapper *pickMapper = new QSignalMapper(this);
-	
-	// link each menu option to respective slot to control action
-	connect(changeColour, SIGNAL(triggered()), this, SLOT(colChangeSlot()));
-	connect(changeTransparency, SIGNAL(triggered()), this, SLOT(transChangeSlot()));
-	connect(printIntersections, SIGNAL(triggered()), pickMapper, SLOT(map()));
-	connect(drawIntersections, SIGNAL(triggered()), this, SLOT(updateDrawList()));
-	connect(printAllIntersections, SIGNAL(triggered()), this, SLOT(printAllIntersections()));
-	connect(drawAllIntersections, SIGNAL(triggered()), this, SLOT(drawAllIntersections()));
-	connect(slideshowMode, SIGNAL(triggered()), this, SLOT(createSlideDialog()));
-	
-	// link the current pick id with the slot via mapper
-	pickMapper -> setMapping(printIntersections, pickID);
-	connect(pickMapper, SIGNAL(mapped(int)), this, SLOT(printIntersections(int)));
-	
-	// create context menu at cursor
-	menu.exec(QCursor::pos());
-	
-	return;	
-}
-
-/**
-   Scroll mode command to move selection to next object
-   
-   @param delta the rotation amount of the scroll wheel
-*/
-void vis::scroll(float delta) {
-
-	// if not in scroll mode already, save rgba properties and setup scroll mode
-	if(scrollFlag==0) {
-		RGBAHold = objColour;
-		for(int i = 0; i < (int)objColour.size(); i++) // lower transparency of all objects
-			objColour.at(i).A = 0.18; 
-	} else // set previous objects transparency back to low transparency
-		objColour.at(pickID).A = 0.18; 
+		// create and draw first slide
+		createSlide();
+		updateGL();
 		
-	scrollFlag=1; // set flag
-			
-	if(delta > 0.0) { // wheel scrolled forward
-	
-		if(pickID != (int)objCentre.size()-1) // normal case
-			pickID++;
-		else // last object in vector selected case
-			pickID = 0;
-			
-	} else { // wheel scrolled backwards
-	
-		if(pickID!=0) // normal case
-			pickID--;
-		else // first object in vector case
-			pickID = (int)objCentre.size()-1;
+		// get the number of loops required
+		int numSlides;
+		if(slideData.group == 0) 
+			numSlides = (int)keySphereList.size();
+		else
+			numSlides = (int)keyPairList.size();
+		
+		// loop through remaining slides on timer
+		while(keyListPos!=numSlides) {
+		
+			waitFunc(10); // wait 10 secs
+			// create slide and update screen	
+			createSlide();
+			updateGL();
+		}
+		
+		waitFunc(10); // wait 10 secs
+		stopSlideshow(); // reset variables
 	}
 	
-	// set currently selected objects transparency to near opaque
-	objColour.at(pickID).A = 0.95;
-	
-	updateGL(); // redraw cube
+	return;
+}
+
+/**
+   Slot that handles value changes in the key combo box
+*/
+void vis::keyChange(QString key) {
+	string keyVal = key.toStdString();
+	slideData.key = keyVal;
+}
+
+/**
+   Slot that handles value changes in the transition combo box
+*/
+void vis::transChange(QString trans) {
+	int transVal;
+	(trans == "Key Press") ? (transVal = 0) : (transVal = 1);
+	slideData.trans = transVal;
+}
+
+/**
+   Slot that handles value changes in the group combo box
+*/
+void vis::groupChange(QString group) {
+	int groupVal;
+	(group == "Individual") ? (groupVal = 0) : (groupVal = 1);
+	slideData.group = groupVal;
 }
 
 /**
@@ -1508,14 +1529,7 @@ void vis::keyPressEvent(QKeyEvent *event) {
 		
 	} else if(key == Qt::Key_Space) { // select in scroll mode
 	
-		if(scrollFlag == 1) { // if in scroll mode
-		
-			scrollFlag = 0; // deset scroll flag
-			objColour = RGBAHold; // reset transparencies
-			updateGL(); // redraw frame
-			createContextMenu(); // spawn context menu for selected
-			
-		} else if(slideshowMode == 1 && slideData.trans == 0) { // if in key press slideshow
+		if(slideshowFlag == 1 && slideData.trans == 0) { // if in key press slideshow
 			
 			// if last slide drawn, exit slideshow mode
 			if(slideData.group==0 && keyListPos==(int)keySphereList.size())
@@ -1535,7 +1549,7 @@ void vis::keyPressEvent(QKeyEvent *event) {
 			objColour = RGBAHold; // reset transparencies
 			pickID=-1; // deselect item
 			
-		} else if(slideshowMode == 1) { // if in slideshow mode
+		} else if(slideshowFlag == 1) { // if in slideshow mode
 			stopSlideshow(); // reset sideshow variables
 		}
 	}
@@ -1605,14 +1619,21 @@ void vis::mouseReleaseEvent(QMouseEvent *event) {
 	if(event->button() == Qt::RightButton) { 
 		
 		if(trans==1){ // case of translation currently taking place
+		
 			trans = 0; // reset translation flag to 0 as it has ended
-		}
-		else if(scrollFlag!=1 && slideshowMode!=1) { // case of picking when no "mode" enabled
+			
+		} else if(scrollFlag == 1) { // if in scroll mode
+		
+			scrollFlag = 0; // deset scroll flag
+			objColour = RGBAHold; // reset transparencies
+			updateGL(); // redraw frame
+			createContextMenu(); // spawn context menu for selected
+		
+		} else if(slideshowFlag!=1) { // case of picking when no "mode" enabled
+		
 			colourPicking = 1; // set colour picking flag
 			pickXY = (intPair){event->x(), event->y()}; // save mouse location
 			updateGL(); // render for colour picking
 		}	
-		
 	}
-	
 }

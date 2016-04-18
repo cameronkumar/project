@@ -30,6 +30,15 @@ struct RGBA {
 
 };
 
+// defines a structure to store generation and key data of objects, will be used 
+// with a vector to store information for all objects
+struct genKey {
+
+	int gen;
+	char key;
+	
+};
+
 // defines a structure that contains an id and distance from plane value
 // used for sorting translucent objects 
 struct idDist {
@@ -60,11 +69,19 @@ struct intDraw {
 
 };
 
-// stores 2 integers as an x and y coordinate, used for picking
-struct xyCoord {
+// stores 2 integers, used when pair cannot be for non-compiletime constants
+struct intPair {
 	
 	int x, y;
 	
+};
+
+// stores data about the parameters of slideshow mode specified by the user
+struct slideParam {
+
+	char key;
+	int trans, group;
+
 };
 
 // defining our visualisation class as subclass of QGLWidget
@@ -118,6 +135,22 @@ class vis: public QGLWidget {
 	   populate the colours vector with a selection of RGB values and creates colour icons
 	*/
 	void initColours();
+	
+	/**
+	   Determines whether a value is already present within a list or not
+	   
+	   @param val value to be searched for
+	   @param list list to be searched
+	   @return 1 if true, else 0
+	*/
+	int valPresent(char val, vector<char> list);
+	
+	/**
+	   Finds all unique key values of objects
+	   
+	   @return vector containing all unique key values
+	*/
+	vector<char> getKeyList();
 	
 	/**
 	   Recursive function to be used for merge sorting of translucent spheres
@@ -219,6 +252,26 @@ class vis: public QGLWidget {
 	*/
 	void scroll(float delta);
 	
+	/**
+	   Function to print specific intersection between two objects and add interstion
+	   to draw list
+	   
+	   @param a index of first sphere
+	   @param b index of second sphere
+	*/
+	void handleIntersection(int a, int b);
+	
+	/** 
+	   resets all variables back to normal when slideshow mode ends
+	*/
+	void stopSlideshow();
+	
+	/**
+	   Function to set up drawing of next slide to screen in slideshow mode
+	*/
+	void createSlide();
+
+	
 	private:
 	
 	// define number of points in one circle of a sphere
@@ -239,8 +292,14 @@ class vis: public QGLWidget {
 	// holds the RGB colour values of each object (default red), and transparency value A (default 1.0)
 	vector<RGBA> objColour;
 	
+	// holds the generation and key value for each object
+	vector<genKey> objGenKey;
+	
 	// holds the RGB colour options for objects
 	vector<RGBA> colour;
+	
+	// vector to store all unqiue key valeus
+	vector<char> key;
 	
 	// holds the QIcon types for each colour to be used in combobox
 	vector<QIcon*> colourIcon;
@@ -273,16 +332,34 @@ class vis: public QGLWidget {
 	int colourPicking;
 	
 	// stores the location of right click event for picking interogation
-	xyCoord pickXY;
+	intPair pickXY;
 	
 	// -1 if no object selected, else holds id of selected object
 	int pickID;
 	
 	// holds the original colour and transparency value of objects
-	vector<RGBA> scrollHold;
+	vector<RGBA> RGBAHold;
 	
 	// flag, indicates whether the program is in scroll mode
 	int scrollFlag;
+	
+	// holds the parameters for slideshow mode
+	slideParam slideData;
+	
+	// flag that indicates whether slideshow mode is active
+	int slideshowMode;
+	
+	// holds list of coi drawn when slideshow mode activated
+	vector<intDraw> coiDrawHold;
+	
+	// holds list of objects that have key specified by user for slideshow mode
+	vector<int> keySphereList; 
+	
+	// holds list of pairs for a key value if pair selection mode requested
+	vector<intPair> keyPairList;
+	
+	// holds current position in keySphereList
+	int keyListPos; 
 	
 	public slots:
 	
@@ -328,6 +405,32 @@ class vis: public QGLWidget {
 	   if all objects are drawn then clear coiDraw vector else add missing coi to coiDraw
 	*/
 	void drawAllIntersections();
+	
+	/**
+	   Slot that creates the dialog that gets user parameters for slideshow mode
+	*/
+	void createSlideDialog();
+	
+	/**
+	   Slot that sets up program for slideshow mode
+	*/
+	void setSlideshow();
+	
+	/**
+	   Slot that handles  value changes in the key combo box
+	*/
+	void keyChange(QString key);
+	
+	/**
+	   Slot that handles value changes in the transition combo box
+	*/
+	void transChange(QString trans);
+	
+	/**
+	   Slot that handles value changes in the group combo box
+	*/
+	void groupChange(QString group);
+	
 	
 	protected:
 	

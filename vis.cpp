@@ -1,10 +1,12 @@
 /**
-   Function definitions for the visualisation class of the non-Euclidean 3D
-   visualisation software. All member function code is defined here 
-   
-   @author Cameron Kumar
-   @version 1.0 5/3/16
-*/
+ * @author Cameron Kumar
+ * @version 1.0 5/3/16
+ * @date 5 Mar 2016
+ * @brief class definition for 3d elliptic non-Euclidean visualisation tool.
+ *
+ *  Function definitions for the visualisation class defined within the vis.h
+ *  header file. All member function and slot code is defined here.
+ */
 
 #include "vis.h" // header file
 #include <QMouseEvent> // qt includes
@@ -29,23 +31,25 @@
 #include <ctime>
 
 /**
-   class constructor
-   
-   @param parent parent class, inherit from there 
-*/
+ * class constructor
+ *  
+ * @param parent parent class, inherit from there 
+ */
 vis::vis(QWidget *parent): QGLWidget(parent) {} // simple constuctor
 
 /**
-   creates the points of a sphere object, centre at origin, radius 1
-   
-   @param nPoints number of points per circle in the sphere
-   @return vector of Point structure defining the point coords in 3d 
-*/
+ * creates the points of a sphere object, centre at origin, radius 1. this 
+ * template sphere can be copied and used to represent all spheres in our
+ * visualisation.
+ *  
+ * @param nPoints number of points per circle in the sphere
+ * @return vector of double triplets defining the point coords in 3d 
+ */
 vector<Point> vis::makeSpherePoints(int nPoints) {
 	
 	vector<Point> spherePoints; // temp vector for points
 	
-	// loops to create the sphere points as circles
+	// loops to create the sphere points as a set of nPoints circles
 	for(int i = 0; i < nPoints; i++) {
 		// calculations for latitude location of circle of points
 		float phi = (-(M_PI) / 2.0) + (((float)i / (float)nPoints) * M_PI);
@@ -61,24 +65,26 @@ vector<Point> vis::makeSpherePoints(int nPoints) {
 			p.x = cosPhi * cosTheta;
 			p.y = cosPhi * sinTheta;
 			p.z = sinPhi;
-			spherePoints.push_back(p); 
+			spherePoints.push_back(p); // add to temp vector
 		}
 	}
 	
-	return spherePoints;
+	return spherePoints; // return points
 	
 }
 
 /**
-   create points of a cube about the origin with side length 1
-   cube points added front to back, top to bottom, left to right
-	   
-   @return vector containing points of cube
-*/
+ * create points of a cube about the origin with side length 1.
+ * cube points added front to back, top to bottom, left to right.
+ * this cube will be transformed and drawn about objects when they are
+ * selected by the user.
+ *  
+ * @return vector containing points of cube
+ */
 vector<Point> vis::makeCubePoints() {
 	
 	// create the points
-	vector<Point> cube;	
+	vector<Point> cube; // temp vector to hold points
 	cube.push_back((Point){-0.5, 0.5, 0.5});
 	cube.push_back((Point){0.5, 0.5, 0.5});
 	cube.push_back((Point){-0.5, -0.5, 0.5});
@@ -93,11 +99,11 @@ vector<Point> vis::makeCubePoints() {
 }	
 
 /**
-   draws a sphere with specified centre and radius
-   
-   @param centre coordinate point of centre location
-   @param radius radius of sphere 
-*/
+ * draws a sphere with specified centre and radius.
+ *  
+ * @param centre coordinate point of centre location
+ * @param radius radius of sphere 
+ */
 void vis::drawSphere(Point centre, double radius) {
 	
 	// load modelview for translation and scaling
@@ -108,9 +114,9 @@ void vis::drawSphere(Point centre, double radius) {
 			
 	// draw the strips of our sphere 
 	glBegin(GL_QUAD_STRIP);
-	// create circPoints-1 quad primitive latitude strips
+	// create circPoints-1 latitudinal strips of primitives
 	for(int i = 0; i < (circPoints - 1); i++)  {
-		/* creates quads between one sphere and sphere above has to include
+		/* creates quads between one sphere and sphere above. has to include
 		the first point in sphere at start and at end hence why the for loop
 		does circPoints+1 iterations */
 		for(int j = 0; j < (circPoints + 1); j++)  {
@@ -149,16 +155,19 @@ void vis::drawSphere(Point centre, double radius) {
 }
 
 /**
-   writes centre radius, generation, and key information from file to vectors
-	   
-   @param objData file containing object raw data 
-   @return returns 1 if there is a major error, else 0
-*/
+ * writes centre, radius, key and generation information from file to 
+ * vectors. File specified as a command line argument. Sphere centre coordinates
+ * stored in objCentre vector, radius data in objRadius, and key and generation
+ * data in objGenKey.
+ * 
+ * @param objData file containing object raw data as char* 
+ * @return returns 1 if there is a major error, else 0
+ */
 int vis::setData(char* objData) {
 	
 	double x, y, z, rad; // will temporarily hold file inputs
-	int gen; // holds the generation value for inputs
-	string key; // holds the key value for inputs
+	int gen; // temporarily holds the generation value for inputs
+	string key; // temporarily holds the key value for inputs
 	int i = 0; // counter for error output
 	
 	ifstream dataFile(objData);
@@ -177,9 +186,9 @@ int vis::setData(char* objData) {
 					objRadius.push_back(rad);
 					objGenKey.push_back((genKey){gen, key});
 					// set default colour and transparency values
-					objColour.push_back((RGBA){1.0, 0.0, 0.0, 0.4});
+					objColour.push_back((RGBA){1.0, 0.0, 0.0, 0.5});
 				
-				} else { // radius error
+				} else { // not enough space seperated values for line
 					cout << "ERROR: line " << i << " of file is invalid and will be ignored!\n";
 					i -= 1; // takes one off counter to ignore line
 				}
@@ -188,7 +197,7 @@ int vis::setData(char* objData) {
 		
 		dataFile.close();		
 		
-		// check if file hasincorrect number of doubles specified
+		// check if file has an incorrect number of doubles specified
 		if((int)objRadius.size() < i) {
 			cout << "ERROR: complete data not specified for all objects!\n";
 			return 1; // exits qt program
@@ -209,33 +218,34 @@ int vis::setData(char* objData) {
 }	
 
 /**
-   populate the colours vector with a selection of RGB values and creates colour icons
-*/
+ * populate the colours vector with a selection of RGBA values and creates colour
+ * icons from png files to be used in colour selection.
+ */
 void vis::initColours() {
 	
-	// populate rgb colour vector
+	// populate RGBA colour vector
 	colour.push_back((RGBA){1.0, 0.0, 0.0, 0.0}); // red (default)
-	colour.push_back((RGBA){0.86, 0.08, 0.24, 0.0}); // crimson
-	colour.push_back((RGBA){0.2, 0.8, 0.2, 0.0}); // lime 
 	colour.push_back((RGBA){0.0, 1.0, 0.0, 0.0}); // green 
-	colour.push_back((RGBA){0.0, 0.392, 0.0, 0.0}); // dark green 
 	colour.push_back((RGBA){0.0, 0.0, 1.0, 0.0}); // blue 
 	colour.push_back((RGBA){0.2, 1.0, 1.0, 0.0}); // cyan
-	colour.push_back((RGBA){0.0, 0.55, 0.55, 0.0}); // dark cyan	
 	colour.push_back((RGBA){1.0, 0.0, 1.0, 0.0}); // pink
-	colour.push_back((RGBA){1.0, 0.75, 0.8, 0.0}); // soft pink
 	colour.push_back((RGBA){1.0, 1.0, 0.0, 0.0}); // yellow
-	colour.push_back((RGBA){1.0, 0.5, 0.0, 0.0}); // orange
-	colour.push_back((RGBA){0.3, 0.3, 1.0, 0.0}); // purple
 	colour.push_back((RGBA){0.5, 0.3, 0.0, 0.0}); // brown
 	colour.push_back((RGBA){1.0, 0.84, 0.0, 0.0}); // gold
+	colour.push_back((RGBA){0.86, 0.08, 0.24, 0.0}); // crimson
+	colour.push_back((RGBA){0.2, 0.8, 0.2, 0.0}); // lime 
+	colour.push_back((RGBA){0.0, 0.392, 0.0, 0.0}); // dark green 
+	colour.push_back((RGBA){0.0, 0.55, 0.55, 0.0}); // dark cyan
+	colour.push_back((RGBA){1.0, 0.5, 0.0, 0.0}); // orange
+	colour.push_back((RGBA){0.3, 0.3, 1.0, 0.0}); // purple
+	colour.push_back((RGBA){1.0, 0.75, 0.8, 0.0}); // soft pink	
 	colour.push_back((RGBA){0.73, 0.73, 0.73, 0.0}); // grey
 	colour.push_back((RGBA){1.0, 1.0, 1.0, 0.0}); // white
 	
 	
-	string sColour[16] = {"red", "crimson", "lime", "green", "darkgreen", "blue",
-			      "cyan", "darkcyan", "pink", "softpink", "yellow", "orange",
-			      "purple", "brown", "gold", "grey"};
+	string sColour[16] = {"red", "green", "blue", "cyan", "pink", "yellow",
+			      "brown", "gold", "crimson", "lime", "darkgreen", "darkcyan",
+			      "orange", "purple", "softpink", "grey"};
 			      
 	// populate QIcon colour vector
 	for(int i = 0; i < 16; i++) {
@@ -252,12 +262,12 @@ void vis::initColours() {
 }
 
 /**
-   Determines whether a value is already present within a list or not
-   
-   @param val value to be searched for
-   @param list list to be searched
-   @return 1 if true, else 0
-*/
+ * determines whether a string is already present within a list or not.
+ * 
+ * @param val value to be searched for
+ * @param list list to be searched in
+ * @return 1 if true, else 0
+ */
 int vis::valPresent(string val, vector<string> list) {
 	
 	int present = 0; // flag to declare if item present or not
@@ -271,10 +281,10 @@ int vis::valPresent(string val, vector<string> list) {
 }
 
 /**
-   Finds all unique key values of objects
-   
-   @return vector containing all unique key values
-*/
+ * finds all unique key values for all objects in the visualisation.
+ *  
+ * @return vector containing all unique key values
+ */
 vector<string> vis::getKeyList() {
 
 	vector<string> list; // list of unique key values to be returned
@@ -284,18 +294,18 @@ vector<string> vis::getKeyList() {
 		if(valPresent(objGenKey.at(i).key, list) == 0)
 			(list.push_back(objGenKey.at(i).key));
 		
-	return list; 
+	return list; // return the completed list
 }
 
 /**
-   Recursive function to be used for merge sorting of translucent spheres
-   
-   @param vec vector to sort (structure of ints and doubles)
-   @return sorted vector (structure of ints and doubles)
-*/
+ * recursive function to be used for merge sorting of a vector.
+ *  
+ * @param vec vector to sort (structure of ints and doubles)
+ * @return sorted vector (structure of ints and doubles)
+ */
 vector<idDist> vis::mergeSort(vector<idDist> vec) {
 	
-	// terminates when only 1 element in list
+	// recursion terminates when only 1 element in list
 	if(vec.size() == 1)
 		return vec;
 	else {
@@ -324,7 +334,7 @@ vector<idDist> vis::mergeSort(vector<idDist> vec) {
 			}
 		}
 		
-		// now adding remaining contents of vectors to sorted list
+		// adding remaining contents of vectors to end of sorted list
 		while(iL < (int)l.size()) {
 			sorted.push_back(l[iL]);
 			iL++;
@@ -340,58 +350,50 @@ vector<idDist> vis::mergeSort(vector<idDist> vec) {
 }
 
 /**
-   orders the spheres based on opacity and which is closest to the camera
-	   
-   @return returns a vector of integers representing the order of furthest to nearest spheres
-*/
+ * orders the spheres based on opacity and which is closest to the camera.
+ * this is done to order the spheres so they may be drawn from furthest to
+ * nearest to provide the see-through effect when rendered.
+ *  
+ * @return returns a vector of integers representing the order of object rendering.
+ */
 vector<int> vis::sphereOrder() {
 	
 	vector<idDist> translucentid; // will hold id and distance of translucent objects
-	vector<int> opaqueid; // will hold id of opaque objects
 	
-	// need to seperate opaque from translucent objects first before we sort translucents
+	// need to create list of objects for all objects within the visualisation
 	for(int i = 0; i < (int)objCentre.size(); i++) {
-		if(objColour.at(i).A == 1.0)
-			opaqueid.push_back(i);
-		else
-			translucentid.push_back((idDist){i, 0.0});
+		translucentid.push_back((idDist){i, 0.0});
+	}	
+	
+	// to sort objects, first calculate the distance from camera.
+	// we will work out order based on point-plane distance from the cameras
+	// parallel plane at origin, need to work out plane normal first
+	Point norm = {(sin((-yRot*M_PI)/180.0))*cos((pRot*M_PI)/180.0), // x
+		      sin((pRot*M_PI)/180.0), // y
+		      cos((-yRot*M_PI)/180.0)*cos((pRot*M_PI)/180.0)}; // z
+	// we also need to calculate the normal vectors magnitude for the equation
+	double normMag = sqrt(pow(norm.x, 2) + pow(norm.y, 2) + pow(norm.z, 2)); 
+	
+	for(int i = 0; i < (int)translucentid.size(); i++) {
+	
+		Point cen = objCentre.at(translucentid.at(i).id); // get centre
+		double rad = objRadius.at(translucentid.at(i).id); // get radius
+		
+		// calculate signed distance from plane
+		double d = (norm.x*cen.x + norm.y*cen.y + norm.z*cen.z)/normMag;
+		translucentid.at(i).dist = d + rad; // update vector
+	
 	}
 	
-	// initialise vector that will store final order list, opaque objects rendered first
-	vector<int> order = opaqueid; 
+	// now need to sort the vector, for this we use mergesort recursion
+	translucentid = mergeSort(translucentid);
 	
-	// if there are translucent objects to be ordered then that is done now
-	if((int)translucentid.size() > 0) {
-		// to sort translucent objects, first calculate the distance from camera
-		// we will work out order based on point-plane distance from the cameras
-		// parallel plane at origin, need to work out plane normal first
-		Point norm = {(sin((-yRot*M_PI)/180.0))*cos((pRot*M_PI)/180.0), // x
-			      sin((pRot*M_PI)/180.0), // y
-			      cos((-yRot*M_PI)/180.0)*cos((pRot*M_PI)/180.0)}; // z
-		// we also need to calculate the normal vectors magnitude for the equation
-		double normMag = sqrt(pow(norm.x, 2) + pow(norm.y, 2) + pow(norm.z, 2)); 
-	
-		for(int i = 0; i < (int)translucentid.size(); i++) {
-	
-			Point cen = objCentre.at(translucentid.at(i).id); // get centre
-			double rad = objRadius.at(translucentid.at(i).id); // get radius
-		
-			// calculate signed distance from plane
-			double d = (norm.x*cen.x + norm.y*cen.y + norm.z*cen.z)/normMag;
-			translucentid.at(i).dist = d + rad; // update vector
-	
-		}
-	
-		// now need to sort the vector, for this we use mergesort recursion
-		translucentid = mergeSort(translucentid);
-	
-		// finally recollate ordered list of ids to draw
-		for(int i = 0; i < (int)translucentid.size(); i++) 
-			order.push_back(translucentid.at(i).id);
-	} 
+	// write the sorted vector ids to a vector of integers
+	vector<int> order; // initialise vector that will store final order list
+	for(int i = 0; i < (int)translucentid.size(); i++) 
+		order.push_back(translucentid.at(i).id);
 
 	return order; // returning ordered list
-
 }
 
 /**
@@ -881,6 +883,26 @@ void vis::createSlide() {
 }
 
 /**
+ * moves specified value from current position in vector to the front of the
+ * specified vector. u
+ *
+ * @param val specified value to be swapped to fron
+ * @param vec vector for swap to take place in
+ * @return reordered vector
+ */
+vector<int> vis::bringToFront(int val, vector<int> vec) {
+
+	// find and erase current pos
+	for(int i = 0; i < (int)vec.size(); i++) 
+		if(vec.at(i) == val) 
+			vec.erase(vec.begin() + i);
+		
+	vec.insert(vec.begin(), val); // put value at start of order
+	
+	return vec; // retrun reordered vector	
+}
+
+/**
    slot to set colour of selected object
 */
 void vis::setColSlot(int colID) {
@@ -918,9 +940,9 @@ void vis::colChangeSlot() {
 	colDialog->setLayout(colLayout);
 	
 	// create the combobox
-	QString colourString[16] = {"Red", "Crimson", "Lime", "Green", "Dark Green", "Blue", "Cyan", 
-				   "Dark Cyan", "Pink", "Soft Pink", "Yellow", "Orange", "Purple", 
-				   "Brown", "Gold", "Grey"}; // used for item creation
+	QString colourString[16] = {"Red", "Green", "Blue", "Cyan", "Pink", "Yellow",
+			            "Brown", "Gold", "Crimson", "Lime", "Dark Green", "Dark Cyan",
+			            "Orange", "Purple", "Soft Pink", "Grey"}; // used for item creation
 	QComboBox *colCombo = new QComboBox; // create our combobox
 	// populate combobox with icon and string items
 	for(int i = 0; i < 16; i++) {
@@ -1099,11 +1121,13 @@ void vis::updateDrawList() {
 			// add each coi for this object to the coiDraw vector
 			for(int i=coiBegin.at(pickID); i<coiBegin.at(pickID+1); i++)
 				coiDraw.push_back(coi.at(i));
-		}
-			
+		}	
 	}
 	
-	updateGL(); // render new frame to screen
+	/* renders a new frame if slideshow mode isn't enabled, rendering at this 
+	   point with slideshow mode enabled would result in error */
+	if(slideshowFlag == 0) 
+		updateGL();
 	
 	return;
 }
@@ -1406,15 +1430,22 @@ void vis::paintGL() {
 		
 		// create the render order
 		vector<int> renderOrder = sphereOrder();
+		
 		// if in scroll mode, need to reorder so the selected is the first object rendered
 		if(scrollFlag == 1) {
-			for(int i = 0; i < (int)renderOrder.size(); i++) // find and erase current pos
-				if(renderOrder.at(i) == pickID)
-					renderOrder.erase(renderOrder.begin() + i);
-			renderOrder.insert(renderOrder.begin(), pickID); // put at start of order
-				
-		}
+		
+			renderOrder = bringToFront(pickID, renderOrder);
 			
+		// if in slideshow mode, need to reorder so current slide sphere(s) rendered first
+		} if(slideshowFlag == 1 ) {
+			
+			if(slideData.group == 0) // if in individual mode
+				renderOrder = bringToFront(keySphereList.at(keyListPos-1), renderOrder);
+			if(slideData.group == 1) { // if in pair mode
+				renderOrder = bringToFront(keyPairList.at(keyListPos-1).x, renderOrder);
+				renderOrder = bringToFront(keyPairList.at(keyListPos-1).y, renderOrder);
+			}
+		}
 	
 		// clearing screen first
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

@@ -192,7 +192,7 @@ class vis: public QGLWidget {
 	int setData(char* objData);
 	
 	/**
-	 * populate the colours vector with a selection of RGB values and creates colour
+	 * populate the colours vector with a selection of RGBA values and creates colour
 	 * icons from png files to be used in colour selection.
 	 */
 	void initColours();
@@ -330,12 +330,12 @@ class vis: public QGLWidget {
 	
 	/** 
 	 *  resets all variables back to their original state when slideshow mode
-	 *  is finished and resets flags
+	 *  is finished and resets flags.
 	 */
 	void stopSlideshow();
 	
 	/**
-	 * function that makes to program wait for specified number of seconds
+	 * function that makes to program wait for specified number of seconds.
 	 *  
 	 * @param s number of seconds to wait
 	 */
@@ -346,7 +346,16 @@ class vis: public QGLWidget {
 	 * sets transparencies and draws intersections.
 	 */
 	void createSlide();
-
+	
+	/**
+	 * moves specified value from current position in vector to the front of the
+	 * specified vector. u
+	 *
+	 * @param val specified value to be swapped to fron
+	 * @param vec vector for swap to take place in
+	 * @return reordered vector
+	 */
+	vector<int> bringToFront(int, vector<int>);
 	
 	private:
 	

@@ -186,7 +186,7 @@ int vis::setData(char* objData) {
 					objRadius.push_back(rad);
 					objGenKey.push_back((genKey){gen, key});
 					// set default colour and transparency values
-					objColour.push_back((RGBA){1.0, 0.0, 0.0, 0.5});
+					objColour.push_back((RGBA){1.0, 0.0, 0.0, 0.3});
 				
 				} else { // not enough space seperated values for line
 					cout << "ERROR: line " << i << " of file is invalid and will be ignored!\n";
@@ -397,11 +397,11 @@ vector<int> vis::sphereOrder() {
 }
 
 /**
-   Changes the RGB colour of an object defined by id to the RGB provided
-   
-   @param id identifier of object whose colour we want to change
-   @param rgb colour we want to change the object to
-*/
+ * changes the RGB colour of object with index id to the RGB value provided.
+ *  
+ * @param id identifier of object whose colour we want to change
+ * @param rgb RGB colour we want the object to have
+ */
 void vis::changeColour(int id, RGBA rgb) {
 	objColour.at(id).R = rgb.R;
 	objColour.at(id).G = rgb.G;
@@ -409,21 +409,23 @@ void vis::changeColour(int id, RGBA rgb) {
 }
 
 /**
-   Changes the transparency value of object to alpha value provided
-	   
-   @param id identifier of object whose transparency we want to change
-   @param alpha alpha value we want to change object to
-*/
+ * changes the transparency value of object to alpha value provided.
+ *  
+ * @param id identifier of object whose transparency we want to change
+ * @param alpha alpha value we want to change object to
+ */
 void vis::changeTransparency(int id, double alpha) {
 	objColour.at(id).A = alpha;
 }
 
 /**
-   Calculates the centre, radius, and orthogonal vector for an intersection
-	   
-   @param id index of object to calculate intersections for
-   @param inter list of intersecting objects
-*/
+ * calculates the centre, radius, and orthogonal vector for an intersection.
+ * stores details in global vector coi. this information is later used to
+ * draw or print intersections.
+ * 
+ * @param id index of object to calculate intersections for
+ * @param inter list of intersecting objects
+ */
 void vis::calculateIntersection(int id, vector<idOverVecLen> inter) {
 	
 	// get the centre coordinates and radius for calculations
@@ -436,8 +438,8 @@ void vis::calculateIntersection(int id, vector<idOverVecLen> inter) {
 		// read intersection details from vector for calculations
 		idOverVecLen currentInt = inter.at(i);
 		
-		if(inter.at(i).over == 0.0) { // tangent case
-		
+		if(abs(inter.at(i).over) < 0.0001) { // tangent case, 0.0001 value to catch rounding error
+			
 			// calculating tangent point
 			Point pTangent = (Point){cen.x+rad*currentInt.vec.x, // x
 					 	 cen.y+rad*currentInt.vec.y, // y
@@ -459,16 +461,15 @@ void vis::calculateIntersection(int id, vector<idOverVecLen> inter) {
 				       	       cen.y + coiDist*currentInt.vec.y,
 				       	       cen.z + coiDist*currentInt.vec.z};
 			
-			// case of tangency between one sphere inside another
-			if(rad == iRad + currentInt.len || rad == iRad - currentInt.len) { 
+			// case of tangency between one sphere inside another, 0.0001 value to catch rounding error
+			if(abs(rad - (iRad + currentInt.len)) < 0.0001 || abs(rad - (iRad - currentInt.len)) < 0.0001) { 
 				// add to vector
-				coi.push_back((intDraw){coiCen, currentInt.vec,  0.0, id, currentInt.id}); 			
+				coi.push_back((intDraw){coiCen, currentInt.vec,  0.0, id, currentInt.id});						
 			} else if(rad < iRad + currentInt.len) { // intersection case
 				// add intersection to intersection vector for drawing
 				coi.push_back((intDraw){coiCen, currentInt.vec, coiRad, id, currentInt.id});
 			}
-			// nothing done if sphere completely contained in another sphere
-						
+			// nothing done if sphere completely contained in another sphere		
 		}
 	}
 	
@@ -476,11 +477,14 @@ void vis::calculateIntersection(int id, vector<idOverVecLen> inter) {
 }
 
 /**
-   Identifies which objects intersect specified object
-	   
-   @param id identifier of object we will calculate intersections for
-   @return number of objects this object intersects with
-*/
+ * identifies which objects intersect specified object by comparing the
+ * sum of their radii with the distance between their centres. The number of 
+ * intersections is returned to keep track of where each objects 
+ * intersections appear in the vector.
+ *
+ * @param id identifier of object we will calculate intersections for
+ * @return number of objects this object intersects with
+ */
 int vis::intersectsWith(int id) {
 	
 	// error check to ensure valid id specified
@@ -507,9 +511,10 @@ int vis::intersectsWith(int id) {
 				double cenVecLength = sqrt(pow(cenVec.x,2) + pow(cenVec.y,2) + pow(cenVec.z,2));
 				cenVec = (Point){cenVec.x/cenVecLength, cenVec.y/cenVecLength, cenVec.z/cenVecLength};
 				double overlap = (r+iR) - cenVecLength; 
-			
+				
 				// determining if an intersection occurs, if so added to vector
-				if(overlap >= 0.0)
+				// also checks for case of sphere completely inside another sphere!
+				if(overlap >= -0.0001 && cenVecLength > max(r-iR, iR-r)-0.0001) // 0.0001 value to catch rounding error
 					inter.push_back((idOverVecLen){i, overlap, cenVec, cenVecLength});
 					
 			}	
@@ -525,10 +530,12 @@ int vis::intersectsWith(int id) {
 }
 
 /**
-   Draws a circle given a specified circle of intersection
-   
-   @param circ information about circle to draw
-*/
+ * draws a circle given a specified centre and radius. used to draw 
+ * intersections between spheres.
+ *
+ * @param cen centre of circle to draw
+ * @param rad radius of circle to draw
+ */
 void vis::drawCircle(intDraw circ) {
 	
 	// get the direction vector as this will be orthogonal vector of coi
@@ -540,7 +547,7 @@ void vis::drawCircle(intDraw circ) {
 	glTranslatef(circ.cen.x, circ.cen.y, circ.cen.z); // translate to centre point
 	glScalef(circ.rad, circ.rad, circ.rad);	// scale to radius size
 	/* current orthogonal vector (0, 0, 1), we need to pitch & yaw rotate to dirVec,
-	   this can be done using vector equations*/
+	   this can be done using vector cross products to give us the axis of rotation */
 	glRotatef((180*acos(dirVec.z)/M_PI), -dirVec.y, dirVec.x, 0.0); // cross product 
 	
 	// standard circle of with radius 1 about (0, 0, 0) on y x-y plane
@@ -566,8 +573,8 @@ void vis::drawCircle(intDraw circ) {
 }
 
 /** 
-   Draws the intersections saved in the global variable coi
-*/
+ * draws the intersections saved in the global variable coiDraw.
+ */
 void vis::drawIntersections() {
 
 	// for each intersection
@@ -576,27 +583,27 @@ void vis::drawIntersections() {
 		// get details of circle of intersection from vector
 		intDraw iCoi = coiDraw.at(i);
 		
-		// if tangent then set appropriate circle diametre
+		// if tangent case then set appropriate circle diametre
 		if(iCoi.rad == 0.0)
 			iCoi.rad = 0.05*objRadius.at(iCoi.id1);
 		
 		drawCircle(iCoi); // draw circle
-		
 	}
-	
 	return;	
 }
 
 /**
-   Renders for picking
-   
-   @return integer id of picked object
-*/
+ * renders for picking using the colour hack. creates unique colour for 
+ * each object then determines which object the user has picked depending
+ * on the colour of the pixel under the mouse.
+ * 
+ * @return integer id of picked object
+ */
 int vis::getPicked() {
 
 	glDisable(GL_DITHER); // disable dithering to ensure all objects drawn in true colour
 	
-	// render each object in unique colour, index in vector determines red value
+	// render each object in unique colour, index in vector determines red and green value
 	for(int i = 0; i < (int)objCentre.size(); i++) {
 		int r = i%255; // generate r value
 		int g = i/255; // generate g value
@@ -616,14 +623,15 @@ int vis::getPicked() {
 	
 	int pickObj = (int)(data[0]+(255*data[1])); // convert back to id
 	colourPicking = 0; // reset flag	
-	return(pickObj);
+	return(pickObj);// return picked object
 }
 
 /**
-   Draws cube face with side length 1 about origin
-   
-   @param p array of int containing each point on cube face
-*/
+ * draws cube with side lengths 1 about the origin from points held in
+ * cubePoints variable.
+ *  
+ * @param p array of int containing each point on cube face
+ */
 void vis::drawCubeFace(int *p) {
 	
 	// loop through each point to draw the face
@@ -637,15 +645,15 @@ void vis::drawCubeFace(int *p) {
 }
 
 /**
-   Renders a wireframe cube around picked object
-   
-   @param id of sphere that cube should be drawn around
-*/
+ * renders a wireframe cube around currently selected picked object
+ *  
+ * @param id of sphere that cube should be drawn around
+ */
 void vis::selectionCube(int id) {
 	
 	// set up transformation radius to draw cube correctly
 	glMatrixMode(GL_MODELVIEW); // load matrix
-	glPushMatrix(); // save matrix
+	glPushMatrix(); // save current modelview matrix
 	glTranslatef(objCentre.at(id).x, objCentre.at(id).y, objCentre.at(id).z);
 	double side = 2*(objRadius.at(id)); // compute side length
 	glScalef(side, side, side);
@@ -656,21 +664,23 @@ void vis::selectionCube(int id) {
 			  {5, 4, 6, 7},
 			  {4, 0, 2, 6}};
 	
-	// draw each face one at a time, each is a different line loop
+	// draw each face one at a time, each is a different line loop primitive
 	for(int i=0; i<4; i++) {
 		glBegin(GL_LINE_LOOP);
 		drawCubeFace(face[i]);
 		glEnd();
 	}
 	
-	glPopMatrix(); // reload matrix	
+	glPopMatrix(); // reload previous modelview matrix	
 	
 	return;
 }
 
 /**
-   Creates the context menu for a right click pick
-*/
+ * creates the context menu when picking occurs. available options depend
+ * upon whether an object or the background is selected. handles signals 
+ * depending what option is picked by the user.
+ */
 void vis::createContextMenu() {
 	
 	QMenu menu; // create the menu widget
@@ -683,6 +693,7 @@ void vis::createContextMenu() {
 	QAction* printAllIntersections = new QAction("Print All Intersections", this);
 	QAction* drawAllIntersections = new QAction("Draw All Intersections", this);
 	QAction* slideshowMode = new QAction("Slideshow Mode", this);
+	QAction* helpHint = new QAction("Help Hint", this);
 	
 	// if no particular object selected disable object specific options
 	if(pickID == -1) { 
@@ -703,8 +714,10 @@ void vis::createContextMenu() {
 	menu.addAction(drawAllIntersections);
 	menu.addSeparator();
 	menu.addAction(slideshowMode);
+	menu.addSeparator();
+	menu.addAction(helpHint);
 	
-	// create QSignalMapper type to pass parameters to a slot
+	// create QSignalMapper type to pass parameters to for print intersections slot
 	QSignalMapper *pickMapper = new QSignalMapper(this);
 	
 	// link each menu option to respective slot to control action
@@ -715,10 +728,11 @@ void vis::createContextMenu() {
 	connect(printAllIntersections, SIGNAL(triggered()), this, SLOT(printAllIntersections()));
 	connect(drawAllIntersections, SIGNAL(triggered()), this, SLOT(drawAllIntersections()));
 	connect(slideshowMode, SIGNAL(triggered()), this, SLOT(createSlideDialog()));
+	connect(helpHint, SIGNAL(triggered()), this, SLOT(helpHint()));
 	
 	// link the current pick id with the slot via mapper
 	pickMapper -> setMapping(printIntersections, pickID);
-	connect(pickMapper, SIGNAL(mapped(int)), this, SLOT(printIntersections(int)));
+	connect(pickMapper, SIGNAL(mapped(int)), this, SLOT(printIntersectionSlot(int)));
 	
 	// create context menu at cursor
 	menu.exec(QCursor::pos());
@@ -761,6 +775,9 @@ void vis::scroll(float delta) {
 	// set currently selected objects transparency to near opaque
 	objColour.at(pickID).A = 0.95;
 	
+	// update the screen text vector to display picked information
+	screenTextSelect(pickID);
+	
 	updateGL(); // redraw cube
 }
 
@@ -772,6 +789,8 @@ void vis::scroll(float delta) {
    @param b index of second sphere
 */
 void vis::handleIntersection(int a, int b) {
+	
+	screenText.clear(); // clear screen text vector
 	
 	// print intersection first, initialize iterator
 	vector<intDraw>::iterator it = coi.begin();
@@ -786,7 +805,7 @@ void vis::handleIntersection(int a, int b) {
 		
 			if(itCoi.id2 == b) { // if specific intersection found
 			
-				if(itCoi.rad == 0.0)  // tangent case
+				if(itCoi.rad == 0.0) // tangent case
 					sInter << "Sphere " << itCoi.id1 << " is tangent to sphere " 
 				               << itCoi.id2 << " at point (" << itCoi.cen.x << 
 				               ", " << itCoi.cen.y << ", " << itCoi.cen.z << ")\n";
@@ -796,6 +815,7 @@ void vis::handleIntersection(int a, int b) {
 				     	       << itCoi.cen.x << ", " << itCoi.cen.y << ", " << itCoi.cen.z 
 				     	       << ") with radius " << itCoi.rad << "\n";
 				intFlag = 1; // intersection occurs, set flag	
+				screenTextIntersect(itCoi); // updates screenText vector
 				
 			} else { // if intersection not found
 			
@@ -813,9 +833,6 @@ void vis::handleIntersection(int a, int b) {
 	// print intersection information
 	cout << sInter.str() << endl;
 	
-	// add circle of intersection to draw list 
-	drawCircle(*it);
-	
 	return;
 }
 
@@ -826,9 +843,9 @@ void vis::stopSlideshow() {
 
 	slideshowFlag = 0; // reset flag
 	objColour = RGBAHold; // reset transparencies
-	coiDraw = coiDrawHold; // reset drawn intersetions
 	keySphereList.clear(); // reset vectors
 	keyPairList.clear(); // reset vectors
+	screenText.clear(); // clear screenText values
 
 }
 
@@ -852,8 +869,6 @@ void vis::waitFunc(int s) {
 */
 void vis::createSlide() {
 	
-	// clear drawlist for last slide
-	coiDraw.clear();
 	// reset transparencies
 	for(int i = 0; i < (int)keySphereList.size(); i++)
 		objColour.at(keySphereList.at(i)).A = 0.05;
@@ -863,10 +878,6 @@ void vis::createSlide() {
 	
 		objColour.at(keySphereList.at(keyListPos)).A = 0.95; // set transparency 
 		printIntersections(keySphereList.at(keyListPos)); // print intersections
-		// to draw intersections we need to select, call draw function and deselect object
-		pickID = keySphereList.at(keyListPos);
-		updateDrawList();
-		pickID = -1;	
 		
 	// pair mode case, set transparencies, print intersection between objects and draw	
 	} else { 
@@ -903,11 +914,130 @@ vector<int> vis::bringToFront(int val, vector<int> vec) {
 }
 
 /**
+ * prints the context of the screenText vector to the opengl widget, calculates
+ * number of lines required
+ */
+void vis::createText() {
+
+	int lines = (int)screenText.size(); // get number of strings needed to print
+	glColor3f(1.0, 1.0, 1.0); // set text colour to white
+	
+	// get viewport size to get y value at bottom of screen
+	// will be needed to calculate text position
+	GLint view[4];
+	glGetIntegerv(GL_VIEWPORT, view);
+	
+	// print each line in descending height (variable y position)
+	for(int i = 0; i < lines; i++) {
+		int y = view[3]-20*(lines-i); // calculate y position
+		QString text = QString::fromStdString(screenText.at(i)); // convert to QString
+		renderText(10, y, text); // render text on screen
+	}
+}
+
+/**
+ * updates the screenText vector by replacing current contents with those
+ * of the the object with index of currently selected value
+ *
+ * @param id index of object that screenText vector to be updated for
+ */
+void vis::screenTextSelect(int id) {
+	
+	screenText.clear(); // clear currently held text
+	
+	// create a stringstream variable and write object information to it
+	stringstream text;
+	text << "Sphere " << id << ": centre (" << objCentre.at(id).x  << ", " << 
+	     objCentre.at(pickID).y << ", " << objCentre.at(id).z << ") radius " 
+	     << objRadius.at(id);
+	
+	// update screenText variable with this string
+	screenText.push_back(text.str());
+	
+	return;	
+}
+
+/**
+ * updates the screenText vector by adding brief details of specified 
+ * intersection to the vector as a string
+ *
+ * @param id index of object that screenText vector to be updated for
+ */
+void vis::screenTextIntersect(intDraw inter) {
+	
+	stringstream sInter; // string stream to create the string 
+	sInter << setprecision(3); // set low precision
+		
+	// create the string for intersection
+	if(inter.rad == 0.0) // tangent case
+		sInter << inter.id1 << " tangent to " << inter.id2 << " at (" << inter.cen.x
+		        << ", " << inter.cen.y << ", " << inter.cen.z << ")";
+	else // intersection case
+		sInter << inter.id1 << " intersects " << inter.id2 << ": centre (" << inter.cen.x 
+	       	       << ", " << inter.cen.y << ", " << inter.cen.z << ") radius " << inter.rad;
+	       	       
+	// add string to vector
+	screenText.push_back(sInter.str());
+	return;	
+}
+
+/**
+    prints intersectiosn for currently selected object to standard output
+   
+   @param id id of currently selected object
+*/
+void vis::printIntersections(int id) {
+	
+	screenText.clear(); // clears screenText variable so we may update it with new strings
+	
+	// create string stream that will hold output string, set precision for reals
+	stringstream sInter; 
+	sInter << setprecision(4);
+	
+	// initalise iterator for looping through coi, starting at coiBegin location for id
+	vector<intDraw>::iterator it = coi.begin();
+	advance(it, coiBegin.at(id));
+	int interFlag = 0; // flag to indicate if an intersection occurs
+	
+	if(it!=coi.end()) {
+		intDraw itCoi = *it; // get coi at positon
+		// loop through coi vector until all intersection strings created
+		while(itCoi.id1 == id) {
+		
+			if(itCoi.rad == 0.0)  // tangent case
+				sInter << "Sphere " << itCoi.id1 << " is tangent to sphere " << itCoi.id2 << " at point ("
+				       << itCoi.cen.x << ", " << itCoi.cen.y << ", " << itCoi.cen.z << ")\n";
+			else // intersection case
+				sInter << "Sphere " << itCoi.id1 << " intersects sphere " << itCoi.id2 
+				       << " with circle of intersection located about (" << itCoi.cen.x << ", " 
+				       << itCoi.cen.y << ", " << itCoi.cen.z << ") with radius " << itCoi.rad << "\n";
+				       
+			screenTextIntersect(itCoi); // update screenText vector with intersection
+		
+			interFlag = 1;
+			it++; // iterate iterator
+			itCoi = *it; // get new coi
+		}
+	}
+	
+	// if no intersections take place and not in slideshow mode, write no intersections
+	if(interFlag==0 && slideshowFlag == 0) { 
+		sInter << "Sphere " << id << " does not intersect with any other objects!\n";
+		screenText.push_back(sInter.str()); // add lack of intersection to vector
+	}
+	
+	sInter << endl; // add some spacing
+	cout << sInter.str(); // print out the intersection information
+	
+	return;
+}
+
+/**
    slot to set colour of selected object
 */
 void vis::setColSlot(int colID) {
 	changeColour(pickID, colour.at(colID));
-	updateGL();
+	updateGL(); // redraw frame
 }
 
 /**
@@ -1045,45 +1175,9 @@ void vis::transChangeSlot() {
    
    @param id id of currently selected object
 */
-void vis::printIntersections(int id) {
-	
-	// create string stream that will hold output string, set precision for reals
-	stringstream sInter; 
-	sInter << setprecision(4);
-	
-	// initalise iterator for looping through coi, starting at coiBegin location for id
-	vector<intDraw>::iterator it = coi.begin();
-	advance(it, coiBegin.at(id));
-	int interFlag = 0; // flag to indicate if an intersection occurs
-	
-	if(it!=coi.end()) {
-		intDraw itCoi = *it; // get coi at positon
-		// loop through coi vector until all intersection strings created
-		while(itCoi.id1 == id) {
-		
-			if(itCoi.rad == 0.0)  // tangent case
-				sInter << "Sphere " << itCoi.id1 << " is tangent to sphere " << itCoi.id2 << " at point ("
-				       << itCoi.cen.x << ", " << itCoi.cen.y << ", " << itCoi.cen.z << ")\n";
-			else // intersection case
-				sInter << "Sphere " << itCoi.id1 << " intersects sphere " << itCoi.id2 
-				       << " with circle of intersection located about (" << itCoi.cen.x << ", " 
-				       << itCoi.cen.y << ", " << itCoi.cen.z << ") with radius " << itCoi.rad << "\n";
-		
-			interFlag = 1;
-			it++; // iterate iterator
-			itCoi = *it; // get new coi
-		}
-	}
-	
-	// if no intersections take place and not in slideshow mode, write no intersections
-	if(interFlag==0 && slideshowFlag == 0) 
-		sInter << "Sphere " << id << " does not intersect with any other objects!\n";
-	
-	sInter << endl; // add some spacing
-	
-	cout << sInter.str(); // print out the intersection information
-	
-	return;
+void vis::printIntersectionSlot(int id) {
+	printIntersections(id);
+	updateGL();
 }
 
 /**
@@ -1140,6 +1234,7 @@ void vis::printAllIntersections() {
 	for(int i = 0; i < (int)objCentre.size(); i++) {
 		printIntersections(i);
 	}
+	screenText.clear();
 
 	return;
 }
@@ -1237,7 +1332,6 @@ void vis::setSlideshow() {
 
 	// save initial RGBA values and draw list of all objects
 	RGBAHold = objColour;
-	coiDrawHold = coiDraw;
 	
 	// set the slideshow mode flag and set key list position to 0
 	slideshowFlag = 1;	
@@ -1322,6 +1416,48 @@ void vis::groupChange(QString group) {
 }
 
 /**
+ * slot that prints help text from help.txt file and creates a dialog
+ * to notify the user that it has done this.
+ */
+void vis::helpHint() {
+	
+	ifstream helpFile("help.txt"); // create input filestrea,
+	string line; // will hold each line of helpfile while they are read in
+	
+	while(getline(helpFile, line)) // print each line of file to standard output
+		cout << line << endl;
+	
+	helpFile.close(); // close file
+	
+	// create a dialog to state that the data has been printed to output
+	QDialog *helpDialog = new QDialog(0);	
+	helpDialog->setWindowTitle("Help Hint");
+	
+	// create a dialog layout
+	QVBoxLayout *helpLayout = new QVBoxLayout; // vertical box layout
+	helpLayout->setSizeConstraint(QLayout::SetFixedSize); // fix dialog size
+	
+	// create QLabel to display text and a button to dismiss the dialog
+	QLabel *helpText = new QLabel("Help information has been printed to the console!");
+	QPushButton *okButton = new QPushButton;
+	okButton->setText("OK");
+	okButton->setMaximumWidth(50); // format button width
+	
+	// add widgets to dialog and align them
+	helpLayout->addWidget(helpText);
+	helpLayout->addWidget(okButton);
+	helpLayout->setAlignment(okButton, Qt::AlignHCenter);
+	
+	// set layout of dialog
+	helpDialog->setLayout(helpLayout);
+	
+	// connect OK button to slot that dismisses dialog
+	connect(okButton, SIGNAL(pressed()), helpDialog, SLOT(accept()));
+	
+	helpDialog->show(); // display dialog
+}
+
+/**
    initialises environment for OpenGL rendering when instance called
 */
 void vis::initializeGL() {
@@ -1390,11 +1526,19 @@ void vis::initializeGL() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	// temp colouring options
+	/* assign colour for each object based on their key. if there are more than
+	   16 keys, some colours will represent 2 key values */
 	for(int i = 0; i < (int)objCentre.size(); i++) {
-		objColour.at(i).R = colour.at(i%6).R;
-		objColour.at(i).G = colour.at(i%6).G;
-		objColour.at(i).B = colour.at(i%6).B;
+		
+		string k = objGenKey.at(i).key; // get key value
+		
+		for(int j = 0; j < (int)key.size(); j++) { // set colour based on index of key
+			if(k == key.at(j)) {
+				objColour.at(i).R = colour.at(j%16).R;
+				objColour.at(i).G = colour.at(j%16).G;
+				objColour.at(i).B = colour.at(j%16).B;
+			}
+		}
 	}
 	
 }
@@ -1472,6 +1616,9 @@ void vis::paintGL() {
 			// draw the sphere
 			drawSphere(objCentre.at(renderOrder.at(i)), objRadius.at(renderOrder.at(i)));
 		}
+		
+		// generate text needed to be printed to screen, if any
+       		createText();
 	
 		// draw frame and render to screen
 		QGLWidget::swapBuffers();
@@ -1484,11 +1631,15 @@ void vis::paintGL() {
 		
 		int pick = getPicked(); // determine picked object
 		
+		
 		// set selected object or deselect if no object selected
-		if(pick!=256*255) // case where obj selected
+		if(pick!=256*255) {// case where obj selected
 			pickID = pick; // save id of picked object
-		else // no object selected
+			screenTextSelect(pick); // update screen text value with pick id
+		} else {// no object selected
 			pickID = -1; // set selected object variable to indicate nothing selected
+			screenText.clear(); // clear screen text vector
+		}
 		
 		glEnable(GL_LIGHTING); // restore original settings
 		glClearColor(0.0,0.0,0.0,0.0);	
@@ -1579,6 +1730,7 @@ void vis::keyPressEvent(QKeyEvent *event) {
 			scrollFlag = 0; // deset scroll flag
 			objColour = RGBAHold; // reset transparencies
 			pickID=-1; // deselect item
+			screenText.clear(); // clear screen text variable
 			
 		} else if(slideshowFlag == 1) { // if in slideshow mode
 			stopSlideshow(); // reset sideshow variables

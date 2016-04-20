@@ -259,7 +259,9 @@ class vis: public QGLWidget {
 	
 	/**
 	 * identifies which objects intersect specified object by comparing the
-	 * sum of their radii with the distance between their centres.
+	 * sum of their radii with the distance between their centres. The number of 
+ 	 * intersections is returned to keep track of where each objects 
+ 	 * intersections appear in the vector.
 	 *  
 	 * @param id identifier of object we will calculate intersections for
 	 * @return number of objects this object intersects with
@@ -305,8 +307,9 @@ class vis: public QGLWidget {
 	void selectionCube(int id);
 	
 	/**
-	 *  creates the context menu when picking occurs. available options depend
-	 *  upon whether an object or the background is selected.
+	 * creates the context menu when picking occurs. available options depend
+ 	 * upon whether an object or the background is selected. handles signals 
+ 	 * depending what option is picked by the user.
 	 */
 	void createContextMenu();
 	
@@ -356,6 +359,37 @@ class vis: public QGLWidget {
 	 * @return reordered vector
 	 */
 	vector<int> bringToFront(int, vector<int>);
+	
+	/**
+	 * determines what text needs to be printed to screen and renders it using 
+	 * openGL's renderText function. information only printed to screen when
+	 * an object is selected or slideshow mode active
+	 */
+	void createText();
+	
+	/**
+	 * updates the screenText vector by replacing current contents with those
+	 * of the the object with index of currently selected value
+	 *
+	 * @param id index of object that screenText vector to be updated for
+	 */
+	void screenTextSelect(int id);
+	
+	/**
+	 * updates the screenText vector by adding brief details of specified 
+	 * intersection to the vector as a string
+	 *
+	 * @param id index of object that screenText vector to be updated for
+	 */
+	void screenTextIntersect(intDraw inter);
+	
+	/**
+	 * prints intersections for currently selected object to standard output.
+	 * called from context menu.
+	 *  
+	 * @param id id of currently selected object
+	 */
+	void printIntersections(int id);
 	
 	private:
 	
@@ -485,11 +519,6 @@ class vis: public QGLWidget {
 	int slideshowFlag;
 	
 	/**
-	 * holds list of coi drawn when slideshow mode activated.
-	 */
-	vector<intDraw> coiDrawHold;
-	
-	/**
 	 * holds list of objects that have key specified by user for slideshow mode.
 	 */
 	vector<int> keySphereList; 
@@ -503,6 +532,11 @@ class vis: public QGLWidget {
 	 * holds current position in keySphereList
 	 */
 	int keyListPos; 
+	
+	/**
+	 * vector to hold text strings to rendered to screen
+	 */
+	vector<string> screenText;
 	
 	public slots:
 	
@@ -530,12 +564,12 @@ class vis: public QGLWidget {
 	void transChangeSlot();
 	
 	/**
-	 * slot that prints intersections for currently selected object to standard output.
-	 * called from context menu.
+	 * slot that calls printIntersections function for selected object and redraws 
+	 * to screen
 	 *  
 	 * @param id id of currently selected object
 	 */
-	void printIntersections(int id);
+	void printIntersectionSlot(int id);
 	
 	/**
 	 * slot that updates coiDraw vector depending on currently selected object.
@@ -593,6 +627,12 @@ class vis: public QGLWidget {
 	 */
 	void groupChange(QString group);
 	
+	/**
+	 * slot that prints help text from help.txt file and creates a dialog
+	 * to notify the user that it has done this.
+	 */
+	void helpHint();
+	 
 	
 	protected:
 	

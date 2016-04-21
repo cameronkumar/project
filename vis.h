@@ -128,6 +128,9 @@ struct slideParam {
  * button to select an object. The escape key will exit scroll mode without selecting an 
  * object
  *
+ * Pressing the escape key at any time will automatically deselect the currently selected
+ * object and clear the text printed on the screen.
+ *
  * Right mouse button will spawn a context menu, where information about intersections
  * can be output to the console or the intersections themselves can be drawn on 
  * screen for individual or all objects. Object's colour or transparency properties
@@ -338,7 +341,8 @@ class vis: public QGLWidget {
 	void stopSlideshow();
 	
 	/**
-	 * function that makes to program wait for specified number of seconds.
+	 * function that makes the program wait for specified number of seconds through
+	 * use of clock_t variables and the get clock ticks function clock()
 	 *  
 	 * @param s number of seconds to wait
 	 */
@@ -354,38 +358,37 @@ class vis: public QGLWidget {
 	 * moves specified value from current position in vector to the front of the
 	 * specified vector. u
 	 *
-	 * @param val specified value to be swapped to fron
-	 * @param vec vector for swap to take place in
+	 * @param val specified value to be swapped to front
+	 * @param vec vector for swap takes place in
 	 * @return reordered vector
 	 */
 	vector<int> bringToFront(int, vector<int>);
 	
 	/**
-	 * determines what text needs to be printed to screen and renders it using 
-	 * openGL's renderText function. information only printed to screen when
-	 * an object is selected or slideshow mode active
-	 */
+	 * calculates the number of lines required and prints the contents of the screenText 
+ 	* vector to the bottom left of the opengl widget
+ 	*/
 	void createText();
 	
 	/**
-	 * updates the screenText vector by replacing current contents with those
-	 * of the the object with index of currently selected value
-	 *
-	 * @param id index of object that screenText vector to be updated for
-	 */
+ 	* updates the screenText vector by replacing current contents with those
+ 	* of the the object with index specified
+ 	*
+ 	* @param id index of object that screenText vector to be updated for
+ 	*/
 	void screenTextSelect(int id);
 	
 	/**
 	 * updates the screenText vector by adding brief details of specified 
-	 * intersection to the vector as a string
-	 *
-	 * @param id index of object that screenText vector to be updated for
-	 */
+ 	* intersection to the vector as a string
+ 	*
+ 	* @param inter information about the intersection whos details we wish to add to screenText
+ 	*/
 	void screenTextIntersect(intDraw inter);
 	
 	/**
 	 * prints intersections for currently selected object to standard output.
-	 * called from context menu.
+	 * called from context menu. also adds intersections details to screenText vector.
 	 *  
 	 * @param id id of currently selected object
 	 */
@@ -547,8 +550,10 @@ class vis: public QGLWidget {
 	
 	/**
 	 * slot to control creation of the colour change dialog, spawned from
-	 * context menu.
-	 */
+	 * context menu. colour updates as the value of the the combobox changes,
+ 	 * the current colour is saved if user presses the confirm button, else the colour
+ 	 * returns to its original value if the "x" button or esc key is pressed.
+ 	 */
 	void colChangeSlot();
 	
 	/**
@@ -559,7 +564,9 @@ class vis: public QGLWidget {
 	
 	/**
 	 * slot to control creation of the transparency change dialog, spawned from
-	 * context menu.
+	 * context menu. transparency of object changes as the slider does, the 
+	 * transparency value is reset if the dialog is exited by esc key or "x" 
+	 * button. User confirms transparency change by pressing confirm button.
 	 */
 	void transChangeSlot();
 	
@@ -573,8 +580,9 @@ class vis: public QGLWidget {
 	
 	/**
 	 * slot that updates coiDraw vector depending on currently selected object.
-	 * called from context menu.
-	 */
+ 	 * if object's intersections already drawn then it removes them by clearing them 
+  	 * from the coi vector, else it adds them to the vector. called from context menu.
+ 	 */
 	void updateDrawList();
 	
 	/**
@@ -591,13 +599,16 @@ class vis: public QGLWidget {
 	
 	/**
 	 * slot that creates the dialog that gets user parameters for slideshow mode. 
-	 * employs a grid layout within a box layout.
+	 * employs a grid layout within a box layout containing 3 QLabels and 3 comboboxes.
+	 * the user confirms their parameters and starts slideshow mode by pressing the confirm
+	 * button, which triggers the setSlideshow slot to initialize variables for
+	 * slideshow mode.
 	 */
 	void createSlideDialog();
 	
 	/**
 	 * slot that sets up program for slideshow mode by setting variables and flags
-	 * required, depending on user specified parameters. creates lists of which
+	 * required depending on user specified parameters. creates lists of which
 	 * objects need to be highlighted for each slide and carries out entire 
 	 * slideshow if time transition selected.
 	 */
@@ -628,18 +639,25 @@ class vis: public QGLWidget {
 	void groupChange(QString group);
 	
 	/**
-	 * slot that prints help text from help.txt file and creates a dialog
+	 * slot that prints help text from help.txt file to console and creates a dialog
 	 * to notify the user that it has done this.
 	 */
 	void helpHint();
+	
+	/**
+	 * slot that takes a screenshot of the current frame and saves it as a png
+	 * in the screenshots folder.  the date and time are used as a filename
+	 */
+	void takeScreenshot();
 	 
 	
 	protected:
 	
 	/**
-	 * initialises environment for OpenGL rendering when instance called. 
-	 * determines which sphere geometry to use. initializes variables and flags.
-	 * creates points for sphere and cube geometry. sets up camera and lighting.
+	 * protected function, required to define a QGLWidget. initialises environment 
+	 * for OpenGL rendering when instance called. determines which sphere geometry 
+	 * to use. initializes variables and flags. creates points for sphere and cube
+	 * geometry. sets up camera and lighting.
 	 */
 	void initializeGL();
 	
@@ -655,7 +673,7 @@ class vis: public QGLWidget {
 	 * draw a new frame. if standard rendering then a new frame is created based
 	 * on the current variable settings of the program and swapped to front buffer.
 	 * if picking render requested, objects rendered by getPicked function to 
-	 * determine what object the user has selected.
+	 * determine what object the user has selected by drawing to the back buffer.
 	 */ 
 	void paintGL();
 	

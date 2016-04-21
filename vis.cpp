@@ -694,6 +694,7 @@ void vis::createContextMenu() {
 	QAction* drawAllIntersections = new QAction("Draw All Intersections", this);
 	QAction* slideshowMode = new QAction("Slideshow Mode", this);
 	QAction* helpHint = new QAction("Help Hint", this);
+	QAction* screenshot = new QAction("Take Screenshot", this);
 	
 	// if no particular object selected disable object specific options
 	if(pickID == -1) { 
@@ -701,6 +702,17 @@ void vis::createContextMenu() {
 		changeTransparency->setEnabled(0);
 		printIntersections->setEnabled(0);
 		drawIntersections->setEnabled(0);	
+	}
+	
+	if(slideshowFlag == 1) {  // if in slideshow mode disable all but screenshot
+		changeColour->setEnabled(0);
+		changeTransparency->setEnabled(0);
+		printIntersections->setEnabled(0);
+		drawIntersections->setEnabled(0);	
+		printAllIntersections->setEnabled(0);
+		drawAllIntersections->setEnabled(0);
+		slideshowMode->setEnabled(0);
+		helpHint->setEnabled(0);	
 	}
 	
 	// populate menu with actions and seperators
@@ -716,6 +728,8 @@ void vis::createContextMenu() {
 	menu.addAction(slideshowMode);
 	menu.addSeparator();
 	menu.addAction(helpHint);
+	menu.addSeparator();
+	menu.addAction(screenshot);
 	
 	// create QSignalMapper type to pass parameters to for print intersections slot
 	QSignalMapper *pickMapper = new QSignalMapper(this);
@@ -729,6 +743,7 @@ void vis::createContextMenu() {
 	connect(drawAllIntersections, SIGNAL(triggered()), this, SLOT(drawAllIntersections()));
 	connect(slideshowMode, SIGNAL(triggered()), this, SLOT(createSlideDialog()));
 	connect(helpHint, SIGNAL(triggered()), this, SLOT(helpHint()));
+	connect(screenshot, SIGNAL(triggered()), this, SLOT(takeScreenshot()));
 	
 	// link the current pick id with the slot via mapper
 	pickMapper -> setMapping(printIntersections, pickID);
@@ -741,10 +756,12 @@ void vis::createContextMenu() {
 }
 
 /**
-   Scroll mode command to move selection to next object
-   
-   @param delta the rotation amount of the scroll wheel
-*/
+ * scroll mode command to move selection to next object. either moves one
+ * index value forwards if wheel scrolled up or one id value backwards if
+ * wheel scrolled down. changes transparency values accordingly.
+ *  
+ * @param delta the rotation amount of the scroll wheel, positive for increment
+ */
 void vis::scroll(float delta) {
 
 	// if not in scroll mode already, save rgba properties and setup scroll mode
@@ -768,7 +785,7 @@ void vis::scroll(float delta) {
 	
 		if(pickID!=0) // normal case
 			pickID--;
-		else // first object in vector case
+		else // first object in vector selected case
 			pickID = (int)objCentre.size()-1;
 	}
 	
@@ -782,23 +799,23 @@ void vis::scroll(float delta) {
 }
 
 /**
-   Function to print specific intersection between two objects and add interstion
-   to draw list
-   
-   @param a index of first sphere
-   @param b index of second sphere
-*/
+ * function to print specific intersection between two objects and add interstion
+ * to draw list. used in slideshow pair mode.
+ *  
+ * @param a index of first sphere
+ * @param b index of second sphere
+ */
 void vis::handleIntersection(int a, int b) {
 	
 	screenText.clear(); // clear screen text vector
 	
 	// print intersection first, initialize iterator
 	vector<intDraw>::iterator it = coi.begin();
-	advance(it, coiBegin.at(a)); // move to a positon
-	int intFlag = 0; // flag that indicates whether intersection present
+	advance(it, coiBegin.at(a)); // move to positon of a's intersections
+	int intFlag = 0; // flag that indicates whether intersection is present
 	stringstream sInter; // string stream to hold intersection output string
 	
-	if(it!=coi.end()) { // error check
+	if(it!=coi.end()) { // error check, if it is not pointing to end of vector
 		intDraw itCoi = *it; // get coi at positon
 		// loop through coi vector until intersection found or end of intersections
 		while(itCoi.id1 == a && intFlag == 0) {
@@ -837,16 +854,15 @@ void vis::handleIntersection(int a, int b) {
 }
 
 /** 
-   resets all variables back to normal when slideshow mode ends
-*/
+ *  resets all variables back to their original state when slideshow mode
+ *  is finished and resets flags.
+ */
 void vis::stopSlideshow() {
-
 	slideshowFlag = 0; // reset flag
 	objColour = RGBAHold; // reset transparencies
-	keySphereList.clear(); // reset vectors
-	keyPairList.clear(); // reset vectors
-	screenText.clear(); // clear screenText values
-
+	keySphereList.clear(); // reset the key list vector
+	keyPairList.clear(); // reset the key pair vector
+	screenText.clear(); // clear text being drawn on screen
 }
 
 /**
@@ -865,21 +881,24 @@ void vis::waitFunc(int s) {
 }
 
 /**
-   Function to set up drawing of next slide to screen in slideshow mode
-*/
+ * function that makes the program wait for specified number of seconds through
+ * use of clock_t variables and the get clock ticks function clock()
+ *  
+ * @param s number of seconds to wait
+ */
 void vis::createSlide() {
 	
 	// reset transparencies
 	for(int i = 0; i < (int)keySphereList.size(); i++)
 		objColour.at(keySphereList.at(i)).A = 0.05;
 	
-	// individual mode case, set transparency for current slide, print and draw intersections
+	// individual mode case: set transparency for current slide, print and draw intersections
 	if(slideData.group == 0) {
 	
 		objColour.at(keySphereList.at(keyListPos)).A = 0.95; // set transparency 
 		printIntersections(keySphereList.at(keyListPos)); // print intersections
 		
-	// pair mode case, set transparencies, print intersection between objects and draw	
+	// pair mode case: set transparencies, print intersection between objects and draw	
 	} else { 
 		
 		intPair slidePair = keyPairList.at(keyListPos); // get pair
@@ -895,10 +914,10 @@ void vis::createSlide() {
 
 /**
  * moves specified value from current position in vector to the front of the
- * specified vector. u
+ * specified vector.
  *
- * @param val specified value to be swapped to fron
- * @param vec vector for swap to take place in
+ * @param val specified value to be swapped to front
+ * @param vec vector for swap takes place in
  * @return reordered vector
  */
 vector<int> vis::bringToFront(int val, vector<int> vec) {
@@ -910,12 +929,12 @@ vector<int> vis::bringToFront(int val, vector<int> vec) {
 		
 	vec.insert(vec.begin(), val); // put value at start of order
 	
-	return vec; // retrun reordered vector	
+	return vec; // return reordered vector	
 }
 
 /**
- * prints the context of the screenText vector to the opengl widget, calculates
- * number of lines required
+ * calculates the number of lines required and prints the contents of the screenText 
+ * vector to the bottom left of the opengl widget
  */
 void vis::createText() {
 
@@ -937,7 +956,7 @@ void vis::createText() {
 
 /**
  * updates the screenText vector by replacing current contents with those
- * of the the object with index of currently selected value
+ * of the the object with index specified
  *
  * @param id index of object that screenText vector to be updated for
  */
@@ -961,7 +980,7 @@ void vis::screenTextSelect(int id) {
  * updates the screenText vector by adding brief details of specified 
  * intersection to the vector as a string
  *
- * @param id index of object that screenText vector to be updated for
+ * @param inter information about the intersection whos details we wish to add to screenText
  */
 void vis::screenTextIntersect(intDraw inter) {
 	
@@ -982,10 +1001,11 @@ void vis::screenTextIntersect(intDraw inter) {
 }
 
 /**
-    prints intersectiosn for currently selected object to standard output
-   
-   @param id id of currently selected object
-*/
+ * prints intersections for currently selected object to standard output.
+ * called from context menu. also adds intersections details to screenText vector.
+ *  
+ * @param id id of currently selected object
+ */
 void vis::printIntersections(int id) {
 	
 	screenText.clear(); // clears screenText variable so we may update it with new strings
@@ -1014,16 +1034,16 @@ void vis::printIntersections(int id) {
 				       
 			screenTextIntersect(itCoi); // update screenText vector with intersection
 		
-			interFlag = 1;
+			interFlag = 1; // set flag to indicate that intersection occurs
 			it++; // iterate iterator
 			itCoi = *it; // get new coi
 		}
 	}
 	
-	// if no intersections take place and not in slideshow mode, write no intersections
+	// if no intersections take place and not in slideshow mode, add string to indicate this
 	if(interFlag==0 && slideshowFlag == 0) { 
 		sInter << "Sphere " << id << " does not intersect with any other objects!\n";
-		screenText.push_back(sInter.str()); // add lack of intersection to vector
+		screenText.push_back(sInter.str()); // add this string to screenText
 	}
 	
 	sInter << endl; // add some spacing
@@ -1033,16 +1053,19 @@ void vis::printIntersections(int id) {
 }
 
 /**
-   slot to set colour of selected object
-*/
+ * slot to set colour of selected object, called from colour dialog.
+ */
 void vis::setColSlot(int colID) {
 	changeColour(pickID, colour.at(colID));
 	updateGL(); // redraw frame
 }
 
 /**
-   slot to control changing the colour of selected objects
-*/
+ * slot to control creation of the colour change dialog, spawned from
+ * context menu. colour updates as the value of the the combobox changes,
+ * the current colour is saved if user presses the confirm button, else the colour
+ * returns to its original value if the "x" button or esc key is pressed
+ */
 void vis::colChangeSlot() {
 	
 	// save initial colour value, in case of dialog rejected
@@ -1050,7 +1073,8 @@ void vis::colChangeSlot() {
 				 objColour.at(pickID).B};
 	int startColID = 0; // will hold the id of the colour object currently has
 	
-	// find the index of the original colour, need to do ifs for R, G, and B
+	// find the index of the original colour, do this by seeing which colour matches
+	// the rgb of the object
 	for(int i = 0; i<(int)colour.size(); i++) {
 		if(startCol.x == colour.at(i).R) {
 			if(startCol.y == colour.at(i).G)
@@ -1072,15 +1096,15 @@ void vis::colChangeSlot() {
 	// create the combobox
 	QString colourString[16] = {"Red", "Green", "Blue", "Cyan", "Pink", "Yellow",
 			            "Brown", "Gold", "Crimson", "Lime", "Dark Green", "Dark Cyan",
-			            "Orange", "Purple", "Soft Pink", "Grey"}; // used for item creation
+			            "Orange", "Purple", "Soft Pink", "Grey"}; // used for combo item creation
 	QComboBox *colCombo = new QComboBox; // create our combobox
 	// populate combobox with icon and string items
 	for(int i = 0; i < 16; i++) {
 		colCombo->insertItem(i, colourString[i]);
-		colCombo->setItemIcon(i, *colourIcon.at(i));
+		colCombo->setItemIcon(i, *colourIcon.at(i)); // icons created when class instanced
 	}
 	colCombo->setCurrentIndex(startColID);
-	colCombo->setMinimumWidth(100); // formatting width
+	colCombo->setMinimumWidth(100); // width set for formattinh
 	
 	// create the confirm button
 	QPushButton *confirm = new QPushButton;
@@ -1091,7 +1115,7 @@ void vis::colChangeSlot() {
 	colDialog->layout()->addWidget(colCombo);
 	colDialog->layout()->addWidget(confirm);
 	
-	// align widgets centre
+	// align widgets in centre
 	colDialog->layout()->setAlignment(colCombo, Qt::AlignHCenter);
 	colDialog->layout()->setAlignment(confirm, Qt::AlignHCenter); 
 	
@@ -1110,16 +1134,20 @@ void vis::colChangeSlot() {
 }
 
 /**
-   slot to handle a change in the translider value
-*/
+ * slot to handle a change in the translider value, called from transparency
+ * dialog.
+ */
 void vis::transSliderChanged(int val) {
 	objColour.at(pickID).A = (double)val/100.0; // set new transparency
 	updateGL(); // redraw frame
 }
 
 /**
-   slot to control changing the transparency of selected objects
-*/
+ * slot to control creation of the transparency change dialog, spawned from
+ * context menu. transparency of object changes as the slider does, the 
+ * transparency value is reset if the dialog is exited by esc key or "x" 
+ * button. User confirms transparency change by pressing confirm button.
+ */
 void vis::transChangeSlot() {
 
 	// save initial transparency value, in case change cancelled
@@ -1171,18 +1199,21 @@ void vis::transChangeSlot() {
 }
 
 /**
-   slot that prints intersectiosn for currently selected object to standard output
-   
-   @param id id of currently selected object
-*/
+ * slot that calls printIntersections function for selected object and redraws 
+ * to screen
+ *  
+ * @param id id of currently selected object
+ */
 void vis::printIntersectionSlot(int id) {
-	printIntersections(id);
+	printIntersections(id); // prints intersections to standard output
 	updateGL();
 }
 
 /**
-   slot that updates coiDraw vector depending on currently selected object
-*/
+ * slot that updates coiDraw vector depending on currently selected object.
+ * if object's intersections already drawn then it removes them by clearing them 
+ * from the coi vector, else it adds them to the vector. called from context menu.
+ */
 void vis::updateDrawList() {
 	
 	/* flag that indicates whether we are adding or removing from coiDraw, 1 if
@@ -1195,7 +1226,7 @@ void vis::updateDrawList() {
 	// if vec not empty, check if intersections for this object already drawn
 	while(removeFlag!=1 && it!=coiDraw.end()) {
 		intDraw currentInt = *it; // get current intersection
-		if(currentInt.id1 == pickID) // intersections already present
+		if(currentInt.id1 == pickID) // if intersections already present
 			removeFlag = 1; // set flag
 		else
 			it++; // else increment counter
@@ -1220,29 +1251,30 @@ void vis::updateDrawList() {
 	
 	/* renders a new frame if slideshow mode isn't enabled, rendering at this 
 	   point with slideshow mode enabled would result in error */
-	if(slideshowFlag == 0) 
-		updateGL();
+	updateGL();
 	
 	return;
 }
 
 /**
-   slot that prints intersectiosn for all objects to standard output
-*/
+ * slot that prints intersections for all objects to standard output. called
+ * from context menu.
+ */
 void vis::printAllIntersections() {
 
 	for(int i = 0; i < (int)objCentre.size(); i++) {
-		printIntersections(i);
+		printIntersections(i); // print intersections for each objects
 	}
-	screenText.clear();
+	// clear screenText vector, dont want this text to be drawn to screen
+	screenText.clear(); 
 
 	return;
 }
 
 /**
-   slot that updates coiDraw vector for all objects
-   if all objects are drawn then clear coiDraw vector else add missing coi to coiDraw
-*/
+ * slot that updates coiDraw vector to include all objects. however if all 
+ * objects are currently drawn, clears coiDraw.
+ */
 void vis::drawAllIntersections() {
 	
 	if(coiDraw.size() == coi.size()) // case where all objects are drawn already
@@ -1255,8 +1287,12 @@ void vis::drawAllIntersections() {
 }
 
 /**
-   Slot that creates the dialog that gets user parameters for slideshow mode
-*/
+ * slot that creates the dialog that gets user parameters for slideshow mode. 
+ * employs a grid layout within a box layout containing 3 QLabels and 3 comboboxes.
+ * the user confirms their parameters and starts slideshow mode by pressing the confirm
+ * button, which triggers the setSlideshow slot to initialize variables for
+ * slideshow mode.
+ */
 void vis::createSlideDialog() {
 
 	// create the dialog, set title and create layout
@@ -1276,23 +1312,23 @@ void vis::createSlideDialog() {
 	
 	// create the key combobox and then add to the layout
 	QComboBox *keyCombo = new QComboBox;
-	for(int i = 0; i < (int)key.size(); i++)
+	for(int i = 0; i < (int)key.size(); i++) // add combobox items from list of unique keys
 		keyCombo->insertItem(i, QString::fromStdString(key.at(i)));
-	keyCombo->setMinimumWidth(120);
+	keyCombo->setMinimumWidth(120); // set width for formatting
 	comboLayout->addWidget(keyCombo, 1, 2, Qt::AlignHCenter);
 	
 	// create the transition combo box and add to layout	
 	QComboBox *transCombo = new QComboBox;
-	transCombo->insertItem(0, "Key Press");
+	transCombo->insertItem(0, "Key Press"); // add items
 	transCombo->insertItem(1, "Timer");
-	transCombo->setMinimumWidth(120);
+	transCombo->setMinimumWidth(120); // set width for formatting
 	comboLayout->addWidget(transCombo, 2, 2, Qt::AlignHCenter);
 	
 	// create the grouping combo box and add to layout	
 	QComboBox *groupCombo = new QComboBox;
-	groupCombo->insertItem(0, "Individual");
+	groupCombo->insertItem(0, "Individual"); // add items
 	groupCombo->insertItem(1, "Pair");
-	groupCombo->setMinimumWidth(120);
+	groupCombo->setMinimumWidth(120); // set width for formatting
 	comboLayout->addWidget(groupCombo, 3, 2, Qt::AlignHCenter);
 	
 	// create the confirm button
@@ -1326,11 +1362,14 @@ void vis::createSlideDialog() {
 }
 
 /**
-   Slot that sets up program for slideshow mode
-*/
+ * slot that sets up program for slideshow mode by setting variables and flags
+ * required depending on user specified parameters. creates lists of which
+ * objects need to be highlighted for each slide and carries out entire 
+ * slideshow if time transition selected.
+ */
 void vis::setSlideshow() {
 
-	// save initial RGBA values and draw list of all objects
+	// save initial RGBA values of all objects
 	RGBAHold = objColour;
 	
 	// set the slideshow mode flag and set key list position to 0
@@ -1338,7 +1377,7 @@ void vis::setSlideshow() {
 	keyListPos = 0;	
 	pickID = -1; // deselect object
 	
-	// get list of objects with key value specified 
+	// get list of objects with key value specified, store in keySphereList vec
 	for(int i = 0; i < (int)objGenKey.size(); i++) 
 		if(objGenKey.at(i).key == slideData.key) 
 			keySphereList.push_back(i); // add to key list
@@ -1349,7 +1388,7 @@ void vis::setSlideshow() {
 			cout << "Error! Only One Object Exists With Specified Key!\n";
 			stopSlideshow(); // exit slideshow mode
 			return;
-		} else { // create list of pairs
+		} else { // create list of pairs, stored in keyPairList vector
 			for(int i = 0; i < (int)keySphereList.size() - 1; i++) // scroll through objects making pairs
 				for(int j = i + 1; j < (int)keySphereList.size(); j++)
 					keyPairList.push_back((intPair){keySphereList.at(i),keySphereList.at(j)});
@@ -1360,7 +1399,7 @@ void vis::setSlideshow() {
 	if(slideData.trans == 0) {
 		createSlide();
 		updateGL();
-	} else { // if timer mode
+	} else { // else carry out entire slideshow if timer mode
 	
 		// create and draw first slide
 		createSlide();
@@ -1390,16 +1429,22 @@ void vis::setSlideshow() {
 }
 
 /**
-   Slot that handles value changes in the key combo box
-*/
+ * slot that handles  value changes in the key combo box within the slideshow
+ * mode dialog.
+ *
+ * @param key newly selected string value of key
+ */
 void vis::keyChange(QString key) {
 	string keyVal = key.toStdString();
 	slideData.key = keyVal;
 }
 
 /**
-   Slot that handles value changes in the transition combo box
-*/
+ * slot that handles value changes in the transition combo box within the slideshow
+ * mode dialog.
+ *
+ * @param trans newly selected transition parameter
+ */
 void vis::transChange(QString trans) {
 	int transVal;
 	(trans == "Key Press") ? (transVal = 0) : (transVal = 1);
@@ -1407,8 +1452,11 @@ void vis::transChange(QString trans) {
 }
 
 /**
-   Slot that handles value changes in the group combo box
-*/
+ * slot that handles value changes in the group combo box within the slideshow
+ * mode dialog.
+ *
+ * @param group newly selected grouping parameter
+ */
 void vis::groupChange(QString group) {
 	int groupVal;
 	(group == "Individual") ? (groupVal = 0) : (groupVal = 1);
@@ -1416,12 +1464,12 @@ void vis::groupChange(QString group) {
 }
 
 /**
- * slot that prints help text from help.txt file and creates a dialog
+ * slot that prints help text from help.txt file to console and creates a dialog
  * to notify the user that it has done this.
  */
 void vis::helpHint() {
 	
-	ifstream helpFile("help.txt"); // create input filestrea,
+	ifstream helpFile("help.txt"); // create input filestream
 	string line; // will hold each line of helpfile while they are read in
 	
 	while(getline(helpFile, line)) // print each line of file to standard output
@@ -1443,7 +1491,7 @@ void vis::helpHint() {
 	okButton->setText("OK");
 	okButton->setMaximumWidth(50); // format button width
 	
-	// add widgets to dialog and align them
+	// add widgets to layout and align them
 	helpLayout->addWidget(helpText);
 	helpLayout->addWidget(okButton);
 	helpLayout->setAlignment(okButton, Qt::AlignHCenter);
@@ -1458,15 +1506,64 @@ void vis::helpHint() {
 }
 
 /**
-   initialises environment for OpenGL rendering when instance called
-*/
+ * slot that takes a screenshot of the current frame and saves it as a png
+ * in the screenshots folder. the date and time are used as a filename
+ */
+void vis::takeScreenshot() {
+
+	// grab the currently rendered frame and save as QImage
+	QImage frame = grabFrameBuffer(true);
+	
+	// get the current time and convert it into filename string
+	char stringTime[100]; // will hold the time as a string
+	time_t currentTime = time(NULL); // get raw time data
+	 // convert time to string (as filename)
+	strftime(stringTime, 100, "screenshots/image_%m-%d_%H%M%S.png", localtime(&currentTime));
+	QString filename = QString::fromUtf8(stringTime); // convert to QString format
+	
+	// create a dialog to state that the screenshot has either been saved or failed
+	QDialog *screenDialog = new QDialog(0);	
+	screenDialog->setWindowTitle("Screenshot");
+	
+	// create a dialog layout
+	QVBoxLayout *screenLayout = new QVBoxLayout; // vertical box layout
+	screenLayout->setSizeConstraint(QLayout::SetFixedSize); // fix dialog size
+	
+	// create "OK" button to accept the dialog
+	QPushButton *okButton = new QPushButton;
+	okButton->setText("OK");
+	okButton->setMaximumWidth(50); // format button width	
+	
+	// save image to file, if statement true then file saved succesfully
+	if(frame.save(filename, "PNG")) // saved succesfully case
+		screenLayout->addWidget(new QLabel("Screenshot saved succesfully!"));
+	else // saving failed case
+		screenLayout->addWidget(new QLabel("Screenshot save failed!"));
+		
+	// add OK button to layout and centre it
+	screenLayout->addWidget(okButton);
+	screenLayout->setAlignment(okButton, Qt::AlignHCenter);
+	screenDialog->setLayout(screenLayout); // set layout
+	
+	// connect OK button to slot that dismisses dialog
+	connect(okButton, SIGNAL(pressed()), screenDialog, SLOT(accept()));
+	
+	screenDialog->show(); // display dialog
+}
+
+/**
+ * protected function, required to define a QGLWidget. initialises environment 
+ * for OpenGL rendering when instance called. determines which sphere geometry 
+ * to use. initializes variables and flags. creates points for sphere and cube
+ * geometry. sets up camera and lighting.
+ */
 void vis::initializeGL() {
 
 	// determine the value of circpoints depending on how many objects to render
 	int sphereNumber[6] = {175, 150, 125, 100, 75, 50};
 	int circNumber[6] = {41, 45, 50, 58, 71, 100};
 	circPoints = 38; // value if over 175 objects
-	for(int i = 0; i < 6; i++) {
+	for(int i = 0; i < 6; i++) { // determine geometry based on number of spheres
 		if((int)objCentre.size() <= sphereNumber[i])
 			circPoints = circNumber[i];
 	}	
@@ -1478,7 +1575,7 @@ void vis::initializeGL() {
 	// get list of unique key values
 	key = getKeyList();
 	
-	// counter to hold each object's cois starting position in vector
+	// initialize counter to hold each object's cois starting position in vector
 	int startPos = 0;
 	
 	// calculate intersections between spheres and store for later
@@ -1494,10 +1591,11 @@ void vis::initializeGL() {
 	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
 	glLoadIdentity();
 	glFrustum(-2.0,2.0,-1.0,1.0,2.0,1000.0); // sets the clipping plane
-	glTranslatef(0.0, 0.0, -10.0); // moves camera back to view scene
+	glTranslatef(0.0, 0.0, -10.0); // moves camera back to view scene better
 	glMatrixMode(GL_MODELVIEW); // initialise modelview matrix
 	glLoadIdentity();
 	
+	// initialising variables and flags
 	scaleFactor = 1.0; // initialise the zoom factor variable
 	pRot = yRot = 0.0; // initialise rotation variables
 	initColours(); // initialise colour vector
@@ -1507,7 +1605,7 @@ void vis::initializeGL() {
 	scrollFlag = 0; // initialize scroll mode flag, set false
 	
 	glEnable(GL_DEPTH_TEST); // allows for depth comparison when rendering
-	QGLWidget::setAutoBufferSwap(false); // dont autoswap buffers, needed for picking
+	QGLWidget::setAutoBufferSwap(false); // dont autoswap buffers. for picking
 	
 	// setting up lighting
 	glShadeModel(GL_SMOOTH);
@@ -1544,18 +1642,18 @@ void vis::initializeGL() {
 }
 
 /**
-   changes size of viewport when widget resized
- 
-   @param w the new width of the widget
-   @param h the new height of the widget
-*/
+ * changes size of viewport when widget resized
+ * 
+ * @param w the new width of the widget
+ * @param h the new height of the widget
+ */
 void vis::resizeGL(int w, int h) {
 	
-	glViewport(0, 0, w, h);
+	glViewport(0, 0, w, h); // sets viewport to window size
 	
-	float ratio = (float)w/(float)h;
+	float ratio = (float)w/(float)h; // calculate window resolution
 	
-	// now change the frustum to reflect the width and height;
+	// now change the frustum to reflect the width and height, this avoids squashing
 	glMatrixMode(GL_PROJECTION); // projection mode to set clipping plane
 	glLoadIdentity();
 	glFrustum(-ratio,ratio,-1.0,1.0,2.0,1000.0); // sets the clipping plane
@@ -1565,8 +1663,11 @@ void vis::resizeGL(int w, int h) {
 }
 
 /**
-   draws a new frame
-*/ 
+ * draw a new frame. if standard rendering then a new frame is created based
+ * on the current variable settings of the program and swapped to front buffer.
+ * if picking render requested, objects rendered by getPicked function to 
+ * determine what object the user has selected by drawing to the back buffer.
+ */ 
 void vis::paintGL() {
 	
 	glDrawBuffer(GL_BACK); // set to draw on back buffer then swap buffers
@@ -1631,7 +1732,6 @@ void vis::paintGL() {
 		
 		int pick = getPicked(); // determine picked object
 		
-		
 		// set selected object or deselect if no object selected
 		if(pick!=256*255) {// case where obj selected
 			pickID = pick; // save id of picked object
@@ -1651,13 +1751,12 @@ void vis::paintGL() {
 }
 
 /**
-   interaction handling for the mouses's scroll wheel, used for 
-   camera zoom
-   
-   @param event information about the mouse button click
-*/
+ * interaction handling for the mouses's scroll wheel, used for 
+ * camera zoom and scroll mode.
+ *  
+ * @param event information about the mouse button click
+ */
 void vis::wheelEvent(QWheelEvent *event) {
-	
 	
 	if(pickID!=-1) { // allow for scrolling objects when an object selected
 		scroll(event->delta()); // pass to scroll function				
@@ -1683,11 +1782,12 @@ void vis::wheelEvent(QWheelEvent *event) {
 }
 
 /**
-   interaction handling for when a button on the keyboard is pressed,  
-   used for camera zooming
-   
-   @param event information about the key pressed
-*/
+ * interaction handling for when a button on the keyboard is pressed,  
+ * used for camera zooming and scroll mode, moving between slides in slideshow
+ * mode, and exiting scroll and slideshow mode.
+ *  
+ * @param event information about the key pressed
+ */
 void vis::keyPressEvent(QKeyEvent *event) {
 	
 	int key = event->key(); // get the integer value of key pressed
@@ -1723,7 +1823,7 @@ void vis::keyPressEvent(QKeyEvent *event) {
 				createSlide(); 		
 		}
 		
-	} else if(key == Qt::Key_Escape) {// quit scroll mode without selection
+	} else if(key == Qt::Key_Escape) {// quit scroll or slideshow mode
 	
 		if(scrollFlag == 1) { // if in scroll mode
 		
@@ -1734,6 +1834,10 @@ void vis::keyPressEvent(QKeyEvent *event) {
 			
 		} else if(slideshowFlag == 1) { // if in slideshow mode
 			stopSlideshow(); // reset sideshow variables
+		
+		} else { // case of no mode, deselects the object and clears screen text
+			pickID=-1;
+			screenText.clear();
 		}
 	}
 		
@@ -1742,15 +1846,21 @@ void vis::keyPressEvent(QKeyEvent *event) {
 }
 
 /**
-   interaction handling for when a button on the mouse is pressed,  
-   used for camera translation and rotation, and picking. 
-   
-   @param event information about the mouse button press
-*/
+ * interaction handling for when a button on the mouse is pressed,  
+ * stores the start position of the mouse for translations and rotations
+ * 
+ * @param event information about the mouse button press
+ */
 void vis::mousePressEvent(QMouseEvent *event) { 
 	startPos = event->pos(); // records position that mouse was clicked
 }
 
+/**
+ * interaction handling for when mouse movements take place, used for
+ * camera translations and rotations.
+ *  
+ * @param event information about the mouse button press
+ */
 void vis::mouseMoveEvent(QMouseEvent *event) {
 		
 	// calculate change in x and y from start point to current mouse pos
@@ -1780,7 +1890,7 @@ void vis::mouseMoveEvent(QMouseEvent *event) {
 		// rotate about pitch axis if rotation doesnt exceed limits
 		if(-90.0<pRot+yPos && pRot+yPos<90.0) {
 			glRotatef(yPos, cos((yRot*M_PI)/180.0), 0.0, sin((yRot*M_PI)/180.0));
-			// we want to keep track of pitch rotation so it doesnt go over 180
+			// we want to keep track of pitch rotation so it doesnt go over 90 either way
 			pRot += yPos;
 		}
 		
@@ -1793,10 +1903,10 @@ void vis::mouseMoveEvent(QMouseEvent *event) {
 }
 
 /**
-   interaction handling for when mouse button released, used for picking
-	   
-   @param event information about the mouse button released
-*/
+ *  interaction handling for when mouse button released, used for picking
+ *  
+ *  @param event information about the mouse button released
+ */
 void vis::mouseReleaseEvent(QMouseEvent *event) {
 
 	if(event->button() == Qt::RightButton) { 
@@ -1817,6 +1927,9 @@ void vis::mouseReleaseEvent(QMouseEvent *event) {
 			colourPicking = 1; // set colour picking flag
 			pickXY = (intPair){event->x(), event->y()}; // save mouse location
 			updateGL(); // render for colour picking
+			
+		} else { // slideshow mode case, create context menu with only screenshot option
+			createContextMenu();
 		}	
 	}
 }

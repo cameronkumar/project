@@ -13,12 +13,13 @@
 using namespace std;
 
 /**
-   main function for the whole library, gui defined here
-   
-   @param argc number of command line arguments
-   @param argv command line arguments
-   @return exit status of function, normal 0
-*/
+ * main function. sets up the Qt context, checks whether a file has been specified 
+ * as a command line argument and creates an instance of the openGL visualisation.
+ *  
+ * @param argc number of command line arguments
+ * @param argv command line arguments
+ * @return exit status of function, normal 0
+ */
 int main(int argc, char *argv[]) {
 	
 	QApplication app(argc, argv); // creating the application
@@ -45,4 +46,6 @@ int main(int argc, char *argv[]) {
 		cout << "ERROR: no geometric data file specified!\n";
 		return 1;
 	}	
+	
+	return 0;
 }

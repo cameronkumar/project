@@ -138,8 +138,8 @@ struct slideParam {
  * where users can display objects of a specified key value one at a time or in pairs.
  * Slideshow mode may either transition to the next slide either when the space bar is 
  * pressed or after 10 seconds, depending on which option the user requests. Hitting the
- * escape key while in keypress mode will exit slideshow mode. There is also a "help" 
- * feature that will print this information to the console when selected.
+ * escape key while in keypress mode will exit slideshow mode. 
+ * 
  */
 class vis: public QGLWidget {
 
@@ -158,8 +158,10 @@ class vis: public QGLWidget {
 	/**
 	 * creates the points of a sphere object, centre at origin, radius 1. this 
 	 * template sphere can be copied and used to represent all spheres in our
-	 * visualisation.
+	 * visualisation. The sphere points are created when the OpenGL widget
+	 * is initialised by the program.
 	 *  
+	 * @see initializeGL()
 	 * @param nPoints number of points per circle in the sphere
 	 * @return vector of double triplets defining the point coords in 3d 
 	 */
@@ -169,15 +171,19 @@ class vis: public QGLWidget {
 	 * create points of a cube about the origin with side length 1.
 	 * cube points added front to back, top to bottom, left to right.
 	 * this cube will be transformed and drawn about objects when they are
-	 * selected by the user.
+	 * selected by the user. the cube points are created when the OpenGL widget
+	 * is initialised by the program.
 	 *  
+	 * @see initializeGL()
 	 * @return vector containing points of cube
 	 */
 	vector<Point> makeCubePoints();
 	
 	/**
-	 * draws a sphere with specified centre and radius.
+	 * draws a sphere with specified centre and radius. used when spheres are
+	 * rendered to a buffer.
 	 *  
+	 * @see paintGL()
 	 * @param centre coordinate point of centre location
 	 * @param radius radius of sphere 
 	 */
@@ -185,9 +191,9 @@ class vis: public QGLWidget {
 	
 	/**
 	 * writes centre, radius, key and generation information from file to 
-	 * vectors. File specified as a command line argument. Sphere centre coordinates
+	 * vectors. file specified as a command line argument. Sphere centre coordinates
 	 * stored in objCentre vector, radius data in objRadius, and key and generation
-	 * data in objGenKey.
+	 * data in objGenKey. called by the program that instances this class. 
 	 * 
 	 * @param objData file containing object raw data 
 	 * @return returns 1 if there is a major error, else 0
@@ -196,13 +202,18 @@ class vis: public QGLWidget {
 	
 	/**
 	 * populate the colours vector with a selection of RGBA values and creates colour
-	 * icons from png files to be used in colour selection.
+	 * icons from png files to be used in colour selection. called when the OpenGL widget
+	 * is initialised by the program.
+	 *
+	 * @see initializeGL()
 	 */
 	void initColours();
 	
 	/**
 	 * determines whether a string is already present within a list or not.
-	 * 
+	 * used when list of unique keys is being created
+	 *
+	 * @see getKeyList() 
 	 * @param val value to be searched for
 	 * @param list list to be searched in
 	 * @return 1 if true, else 0
@@ -211,14 +222,20 @@ class vis: public QGLWidget {
 	
 	/**
 	 * finds all unique key values for all objects in the visualisation.
-	 *  
+	 * this takes place when the OpenGL widget is initialized.
+	 *
+	 * @see initializeGL()
 	 * @return vector containing all unique key values
 	 */
 	vector<string> getKeyList();
 	
 	/**
-	 * recursive function to be used for merge sorting of a vector.
+	 * recursive function to be used for merge sorting of a vector. used to
+	 * order spheres by distance from the screen as part of rendering a new
+	 * frame.
 	 *  
+	 * @see paintGL()
+	 * @see sphereOrder()
 	 * @param vec vector to sort (structure of ints and doubles)
 	 * @return sorted vector (structure of ints and doubles)
 	 */
@@ -228,23 +245,31 @@ class vis: public QGLWidget {
 	/**
 	 * orders the spheres based on opacity and which is closest to the camera.
 	 * this is done to order the spheres so they may be drawn from furthest to
-	 * nearest to provide the see-through effect when rendered.
-	 *  
+	 * nearest to provide the see-through effect when rendered. required to render
+	 * each new frame.
+	 *
+	 * @see paintGL() 
 	 * @return returns a vector of integers representing the order of object rendering.
 	 */
 	vector<int> sphereOrder();
 	
 	/**
 	 * changes the RGB colour of object with index id to the RGB value provided.
+	 * used when an objects colour is changed from context menu options.
 	 *  
+	 * @see createContextMenu()
+	 * @see colChangeSlot()
 	 * @param id identifier of object whose colour we want to change
 	 * @param rgb RGB colour we want the object to have
 	 */
 	void changeColour(int id, RGBA rgb);
 	
 	/**
-	 * changes the transparency value of object to alpha value provided.
+	 * changes the transparency value of object to alpha value provided. 
+	 * used when an objects transparency is changed from context menu options.
 	 *  
+	 * @see createContextMenu()
+	 * @see transChangeSlot()
 	 * @param id identifier of object whose transparency we want to change
 	 * @param alpha alpha value we want to change object to
 	 */
@@ -252,9 +277,12 @@ class vis: public QGLWidget {
 	
 	/**
 	 * calculates the centre, radius, and orthogonal vector for an intersection.
-	 * stores details in global vector coi. this information is later used to
-	 * draw or print intersections.
+	 * stores details in global vector coi. this is carried out at initialization
+	 * but the information in coi is later used to draw or print intersections.
 	 * 
+	 * @see initializeGL()
+	 * @see printIntersections()
+	 * @see drawIntersections()
 	 * @param id index of object to calculate intersections for
 	 * @param inter list of intersecting objects
 	 */
@@ -262,49 +290,64 @@ class vis: public QGLWidget {
 	
 	/**
 	 * identifies which objects intersect specified object by comparing the
-	 * sum of their radii with the distance between their centres. The number of 
+	 * sum of their radii with the distance between their centres. the number of 
  	 * intersections is returned to keep track of where each objects 
- 	 * intersections appear in the vector.
+ 	 * intersections appear in the vector. done as part of the intersections
+ 	 * calculations when OpenGL widget initialized.
 	 *  
+	 * @see initializeGL()
+	 * @see calculateIntersections()
 	 * @param id identifier of object we will calculate intersections for
 	 * @return number of objects this object intersects with
 	 */
 	int intersectsWith(int id);
 	
 	/**
-	 * draws a circle given a specified centre and radius. used to draw 
-	 * intersections between spheres.
+	 * draws a circle given a specified centre and radius. called from
+	 * the function drawIntersections when a new frame is rendered.
    	 *
+   	 * @see paintGL()
+   	 * @see drawIntersections()
    	 * @param cen centre of circle to draw
    	 * @param rad radius of circle to draw
 	 */
 	void drawCircle(intDraw circ);
 	
 	/** 
-	 * draws the intersections saved in the global variable coiDraw.
+	 * makes calls to draw the intersections saved in the global variable 
+	 * coiDraw when rendering each new frame.
+	 *
+	 * @see drawCircle()
+	 * @see paintGL()
 	 */
 	void drawIntersections();
 	
 	/**
 	 * renders for picking using the colour hack. creates unique colour for 
 	 * each object then determines which object the user has picked depending
-	 * on the colour of the pixel under the mouse.
+	 * on the colour of the pixel under the mouse. triggered by right click.
 	 * 
+	 * @see paintGL()
+	 * @see mouseReleaseEvent()
 	 * @return integer id of picked object
 	 */
 	int getPicked();
 	
 	/**
 	 * draws cube with side lengths 1 about the origin from points held in
-	 * cubePoints variable.
+	 * cubePoints variable. 
 	 *  
+	 * @see selectionCube()
 	 * @param p array of int containing each point on cube face
 	 */
 	void drawCubeFace(int p[4]);
 	
 	/**
-	 * renders a wireframe cube around currently selected picked object
+	 * renders a wireframe cube around currently selected object (if any) by 
+	 * drawing each face one at a time.
 	 *  
+	 * @see paintGL()
+	 * @see drawCubeFace()
 	 * @param id of sphere that cube should be drawn around
 	 */
 	void selectionCube(int id);
@@ -312,38 +355,58 @@ class vis: public QGLWidget {
 	/**
 	 * creates the context menu when picking occurs. available options depend
  	 * upon whether an object or the background is selected. handles signals 
- 	 * depending what option is picked by the user.
+ 	 * depending what option is picked by the user and calls corresponding 
+ 	 * slot.
+ 	 *
+ 	 * @see colChangeSlot()
+ 	 * @see transChangeSlot()
+ 	 * @see printIntersectionSlot()
+ 	 * @see updateDrawList()
+ 	 * @see printAllIntersections()
+ 	 * @see drawAllIntersections()
+ 	 * @see createSlideDialog()
+ 	 * @see takeScreenshot()
 	 */
 	void createContextMenu();
 	
 	/**
 	 * scroll mode command to move selection to next object. either moves one
 	 * index value forwards if wheel scrolled up or one id value backwards if
-	 * wheel scrolled down. changes transparency values accordingly.
+	 * wheel scrolled down. also scrolls if "+" or "-" key pressed. changes 
+	 * transparency values accordingly.
 	 *  
+	 * @see wheelEvent()
+	 * @see keyPressEvent()
 	 * @param delta the rotation amount of the scroll wheel
 	 */
 	void scroll(float delta);
 	
 	/**
 	 * function to print specific intersection between two objects and add interstion
-	 * to draw list. used in slideshow pair mode.
+	 * to draw list. used when a new slide is created in slideshow pair mode.
 	 *  
+	 * @see createSlide()
 	 * @param a index of first sphere
 	 * @param b index of second sphere
 	 */
 	void handleIntersection(int a, int b);
 	
 	/** 
-	 *  resets all variables back to their original state when slideshow mode
-	 *  is finished and resets flags.
+	 * resets all variables back to their original state when slideshow mode
+	 * is finished and resets flags. this is either triggered by the timer on the 
+	 * last slide ending or cycling through all slides by keypress.
+	 *
+	 * @see setSlideshow()
+	 * @see keyPressEvent()
 	 */
 	void stopSlideshow();
 	
 	/**
 	 * function that makes the program wait for specified number of seconds through
-	 * use of clock_t variables and the get clock ticks function clock()
+	 * use of clock_t variables and the get clock ticks function clock().
+	 * required for time transition slideshow mode.
 	 *  
+	 * @see setSlideshow()
 	 * @param s number of seconds to wait
 	 */
 	void waitFunc(int s);
@@ -351,13 +414,19 @@ class vis: public QGLWidget {
 	/**
 	 * sets up objects so the next slide may be rendered in slideshow mode.
 	 * sets transparencies and draws intersections.
+	 *
+	 * @see setSlideshow()
+	 * @see stopSlideshow()
 	 */
 	void createSlide();
 	
 	/**
 	 * moves specified value from current position in vector to the front of the
-	 * specified vector. u
+	 * specified vector. required when rendering a new frame in either slideshow or 
+	 * scroll mode, as the object we wish to highlight should be bought to front
+	 * of render queue.
 	 *
+	 * @see paintGL()
 	 * @param val specified value to be swapped to front
 	 * @param vec vector for swap takes place in
 	 * @return reordered vector
@@ -366,30 +435,44 @@ class vis: public QGLWidget {
 	
 	/**
 	 * calculates the number of lines required and prints the contents of the screenText 
- 	* vector to the bottom left of the opengl widget
- 	*/
+ 	 * vector to the bottom left of the opengl widget. required each time a new
+ 	 * frame is drawn
+ 	 *
+ 	 * @see paintGL()
+ 	 */
 	void createText();
 	
 	/**
- 	* updates the screenText vector by replacing current contents with those
- 	* of the the object with index specified
- 	*
- 	* @param id index of object that screenText vector to be updated for
- 	*/
+ 	 * updates the screenText vector by replacing current contents with those
+ 	 * of the the object with index specified. does this when an object is picked or 
+ 	 * scrolled to.
+ 	 *
+ 	 * @see getPicked()
+ 	 * @see paintGL()
+ 	 * @see scroll()
+ 	 * @param id index of object that screenText vector to be updated for
+ 	 */
 	void screenTextSelect(int id);
 	
 	/**
 	 * updates the screenText vector by adding brief details of specified 
- 	* intersection to the vector as a string
- 	*
- 	* @param inter information about the intersection whos details we wish to add to screenText
- 	*/
+ 	 * intersection to the vector as a string. required in pair slideshow mode
+ 	 * and when intersections are printed.
+ 	 *
+ 	 * @see createSlide()
+ 	 * @see printIntersections()
+ 	 * @param inter information about the intersection whos details we wish to add to screenText
+ 	 */
 	void screenTextIntersect(intDraw inter);
 	
 	/**
 	 * prints intersections for currently selected object to standard output.
 	 * called from context menu. also adds intersections details to screenText vector.
-	 *  
+	 * called when print options on context menu selected  
+	 *
+	 * @see createContextMenu()
+	 * @see printIntersectionSlot()
+	 * @see printAllIntersections()
 	 * @param id id of currently selected object
 	 */
 	void printIntersections(int id);
@@ -545,20 +628,30 @@ class vis: public QGLWidget {
 	
 	/**
 	 * slot to set colour of selected object, called from colour dialog.
+	 *
+	 * @see colChangeSlot()
+	 * @param colID index of object whos colour shall be changed
 	 */
 	void setColSlot(int colID);
 	
 	/**
 	 * slot to control creation of the colour change dialog, spawned from
-	 * context menu. colour updates as the value of the the combobox changes,
- 	 * the current colour is saved if user presses the confirm button, else the colour
- 	 * returns to its original value if the "x" button or esc key is pressed.
+	 * context menu. colour updates as the value of the the combobox changes via
+ 	 * setColSlot function, the current colour is saved if user presses the 
+ 	 * confirm button, else the colour returns to its original value if the 
+ 	 * "x" button or esc key is pressed.
+ 	 *
+	 * @see createContextMenu()
+	 * @see setColSlot()
  	 */
 	void colChangeSlot();
 	
 	/**
 	 * slot to handle a change in the translider value, called from transparency
-	 * dialog.
+	 * dialog. changes the transparency of the object specified.
+	 *
+	 * @see transChangeSlot()
+	 * @param val index of object whos transparency shall be changed
 	 */
 	void transSliderChanged(int val);
 	
@@ -566,14 +659,19 @@ class vis: public QGLWidget {
 	 * slot to control creation of the transparency change dialog, spawned from
 	 * context menu. transparency of object changes as the slider does, the 
 	 * transparency value is reset if the dialog is exited by esc key or "x" 
-	 * button. User confirms transparency change by pressing confirm button.
+	 * button. user confirms transparency change by pressing confirm button.
+	 *
+	 * @see createContextMenu()
+	 * @see transSliderChanged()
 	 */
 	void transChangeSlot();
 	
 	/**
 	 * slot that calls printIntersections function for selected object and redraws 
-	 * to screen
-	 *  
+	 * to screen. this slot is triggered by selection from the context menu.
+	 *
+	 * @see createContextMenu()
+	 * @see printIntersections()
 	 * @param id id of currently selected object
 	 */
 	void printIntersectionSlot(int id);
@@ -582,18 +680,25 @@ class vis: public QGLWidget {
 	 * slot that updates coiDraw vector depending on currently selected object.
  	 * if object's intersections already drawn then it removes them by clearing them 
   	 * from the coi vector, else it adds them to the vector. called from context menu.
+  	 *
+  	 * @see createContextMenu()
  	 */
 	void updateDrawList();
 	
 	/**
-	 * slot that prints intersections for all objects to standard output. called
-	 * from context menu.
+	 * slot that prints intersections for all objects to standard output. uses 
+	 * the printIntersections function to do so. called from context menu. 
+	 *
+	 * @see printIntersections()
+	 * @see createContextMenu()
 	 */
 	void printAllIntersections();
 	
 	/**
 	 * slot that updates coiDraw vector to include all objects. however if all 
-	 * objects are currently drawn, clears coiDraw.
+	 * objects are currently drawn, clears coiDraw. called from context menu
+	 *
+	 * @see createContextMenu()
 	 */
 	void drawAllIntersections();
 	
@@ -602,7 +707,10 @@ class vis: public QGLWidget {
 	 * employs a grid layout within a box layout containing 3 QLabels and 3 comboboxes.
 	 * the user confirms their parameters and starts slideshow mode by pressing the confirm
 	 * button, which triggers the setSlideshow slot to initialize variables for
-	 * slideshow mode.
+	 * slideshow mode. called from context menu.
+	 *
+	 * @see createContextMenu()
+	 * @see setSlideshow()
 	 */
 	void createSlideDialog();
 	
@@ -611,6 +719,9 @@ class vis: public QGLWidget {
 	 * required depending on user specified parameters. creates lists of which
 	 * objects need to be highlighted for each slide and carries out entire 
 	 * slideshow if time transition selected.
+	 *
+	 * @see createSlideDialog()
+	 * @see createSlide()
 	 */
 	void setSlideshow();
 	
@@ -618,6 +729,7 @@ class vis: public QGLWidget {
 	 * slot that handles  value changes in the key combo box within the slideshow
 	 * mode dialog.
 	 *
+	 * @see createSlideDialog()
 	 * @param key newly selected string value of key
 	 */
 	void keyChange(QString key);
@@ -626,6 +738,7 @@ class vis: public QGLWidget {
 	 * slot that handles value changes in the transition combo box within the slideshow
 	 * mode dialog.
 	 *
+	 * @see createSlideDialog()
 	 * @param trans newly selected transition parameter
 	 */
 	void transChange(QString trans);
@@ -634,19 +747,17 @@ class vis: public QGLWidget {
 	 * slot that handles value changes in the group combo box within the slideshow
 	 * mode dialog.
 	 *
+	 * @see createSlideDialog()
 	 * @param group newly selected grouping parameter
 	 */
 	void groupChange(QString group);
 	
 	/**
-	 * slot that prints help text from help.txt file to console and creates a dialog
-	 * to notify the user that it has done this.
-	 */
-	void helpHint();
-	
-	/**
 	 * slot that takes a screenshot of the current frame and saves it as a png
-	 * in the screenshots folder.  the date and time are used as a filename
+	 * in the screenshots folder. the current date and time are used as a filename.
+	 * called from context menu.
+	 *
+	 * @see createContextMenu()
 	 */
 	void takeScreenshot();
 	 
@@ -681,6 +792,7 @@ class vis: public QGLWidget {
 	 * interaction handling for the mouses's scroll wheel, used for 
 	 * camera zoom and scroll mode.
 	 *  
+	 * @see scroll()
 	 * @param event information about the mouse button click
 	 */
 	void wheelEvent(QWheelEvent *event);
@@ -689,7 +801,10 @@ class vis: public QGLWidget {
 	 * interaction handling for when a button on the keyboard is pressed,  
 	 * used for camera zooming and scroll mode, moving between slides in slideshow
 	 * mode, and exiting scroll and slideshow mode.
-	 *  
+	 *
+	 * @see scroll()
+	 * @see createSlide()
+	 * @see stopSlideshow()
 	 * @param event information about the key pressed
 	 */
 	void keyPressEvent(QKeyEvent *event);
@@ -711,9 +826,11 @@ class vis: public QGLWidget {
 	void mouseMoveEvent(QMouseEvent *event);
 	
 	/**
-	 *  interaction handling for when mouse button released, used for picking
+	 * interaction handling for when mouse button released, used for picking
 	 *  
-	 *  @param event information about the mouse button released
+	 * @see getPicked()
+	 * @see createContextMenu()
+	 * @param event information about the mouse button released
 	 */
 	void mouseReleaseEvent(QMouseEvent *event);
 	

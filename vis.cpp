@@ -40,8 +40,10 @@ vis::vis(QWidget *parent): QGLWidget(parent) {} // simple constuctor
 /**
  * creates the points of a sphere object, centre at origin, radius 1. this 
  * template sphere can be copied and used to represent all spheres in our
- * visualisation.
+ * visualisation. The sphere points are created when the OpenGL widget
+ * is initialised by the program.
  *  
+ * @see initializeGL()
  * @param nPoints number of points per circle in the sphere
  * @return vector of double triplets defining the point coords in 3d 
  */
@@ -77,8 +79,10 @@ vector<Point> vis::makeSpherePoints(int nPoints) {
  * create points of a cube about the origin with side length 1.
  * cube points added front to back, top to bottom, left to right.
  * this cube will be transformed and drawn about objects when they are
- * selected by the user.
+ * selected by the user. the cube points are created when the OpenGL widget
+ * is initialised by the program.
  *  
+ * @see initializeGL()
  * @return vector containing points of cube
  */
 vector<Point> vis::makeCubePoints() {
@@ -99,8 +103,10 @@ vector<Point> vis::makeCubePoints() {
 }	
 
 /**
- * draws a sphere with specified centre and radius.
+ * draws a sphere with specified centre and radius. used when spheres are
+ * rendered to a buffer.
  *  
+ * @see paintGL()
  * @param centre coordinate point of centre location
  * @param radius radius of sphere 
  */
@@ -156,11 +162,11 @@ void vis::drawSphere(Point centre, double radius) {
 
 /**
  * writes centre, radius, key and generation information from file to 
- * vectors. File specified as a command line argument. Sphere centre coordinates
+ * vectors. file specified as a command line argument. Sphere centre coordinates
  * stored in objCentre vector, radius data in objRadius, and key and generation
- * data in objGenKey.
+ * data in objGenKey. called by the program that instances this class. 
  * 
- * @param objData file containing object raw data as char* 
+ * @param objData file containing object raw data 
  * @return returns 1 if there is a major error, else 0
  */
 int vis::setData(char* objData) {
@@ -219,7 +225,10 @@ int vis::setData(char* objData) {
 
 /**
  * populate the colours vector with a selection of RGBA values and creates colour
- * icons from png files to be used in colour selection.
+ * icons from png files to be used in colour selection. called when the OpenGL widget
+ * is initialised by the program.
+ *
+ * @see initializeGL()
  */
 void vis::initColours() {
 	
@@ -263,7 +272,9 @@ void vis::initColours() {
 
 /**
  * determines whether a string is already present within a list or not.
- * 
+ * used when list of unique keys is being created
+ *
+ * @see getKeyList() 
  * @param val value to be searched for
  * @param list list to be searched in
  * @return 1 if true, else 0
@@ -282,7 +293,9 @@ int vis::valPresent(string val, vector<string> list) {
 
 /**
  * finds all unique key values for all objects in the visualisation.
- *  
+ * this takes place when the OpenGL widget is initialized.
+ *
+ * @see initializeGL()
  * @return vector containing all unique key values
  */
 vector<string> vis::getKeyList() {
@@ -298,8 +311,12 @@ vector<string> vis::getKeyList() {
 }
 
 /**
- * recursive function to be used for merge sorting of a vector.
+ * recursive function to be used for merge sorting of a vector. used to
+ * order spheres by distance from the screen as part of rendering a new
+ * frame.
  *  
+ * @see paintGL()
+ * @see sphereOrder()
  * @param vec vector to sort (structure of ints and doubles)
  * @return sorted vector (structure of ints and doubles)
  */
@@ -352,8 +369,10 @@ vector<idDist> vis::mergeSort(vector<idDist> vec) {
 /**
  * orders the spheres based on opacity and which is closest to the camera.
  * this is done to order the spheres so they may be drawn from furthest to
- * nearest to provide the see-through effect when rendered.
- *  
+ * nearest to provide the see-through effect when rendered. required to render
+ * each new frame.
+ *
+ * @see paintGL() 
  * @return returns a vector of integers representing the order of object rendering.
  */
 vector<int> vis::sphereOrder() {
@@ -398,7 +417,10 @@ vector<int> vis::sphereOrder() {
 
 /**
  * changes the RGB colour of object with index id to the RGB value provided.
+ * used when an objects colour is changed from context menu options.
  *  
+ * @see createContextMenu()
+ * @see colChangeSlot()
  * @param id identifier of object whose colour we want to change
  * @param rgb RGB colour we want the object to have
  */
@@ -409,8 +431,11 @@ void vis::changeColour(int id, RGBA rgb) {
 }
 
 /**
- * changes the transparency value of object to alpha value provided.
+ * changes the transparency value of object to alpha value provided. 
+ * used when an objects transparency is changed from context menu options.
  *  
+ * @see createContextMenu()
+ * @see transChangeSlot()
  * @param id identifier of object whose transparency we want to change
  * @param alpha alpha value we want to change object to
  */
@@ -420,9 +445,12 @@ void vis::changeTransparency(int id, double alpha) {
 
 /**
  * calculates the centre, radius, and orthogonal vector for an intersection.
- * stores details in global vector coi. this information is later used to
- * draw or print intersections.
+ * stores details in global vector coi. this is carried out at initialization
+ * but the information in coi is later used to draw or print intersections.
  * 
+ * @see initializeGL()
+ * @see printIntersections()
+ * @see drawIntersections()
  * @param id index of object to calculate intersections for
  * @param inter list of intersecting objects
  */
@@ -478,10 +506,13 @@ void vis::calculateIntersection(int id, vector<idOverVecLen> inter) {
 
 /**
  * identifies which objects intersect specified object by comparing the
- * sum of their radii with the distance between their centres. The number of 
+ * sum of their radii with the distance between their centres. the number of 
  * intersections is returned to keep track of where each objects 
- * intersections appear in the vector.
- *
+ * intersections appear in the vector. done as part of the intersections
+ * calculations when OpenGL widget initialized.
+ *  
+ * @see initializeGL()
+ * @see calculateIntersections()
  * @param id identifier of object we will calculate intersections for
  * @return number of objects this object intersects with
  */
@@ -530,9 +561,11 @@ int vis::intersectsWith(int id) {
 }
 
 /**
- * draws a circle given a specified centre and radius. used to draw 
- * intersections between spheres.
+ * draws a circle given a specified centre and radius. called from
+ * the function drawIntersections when a new frame is rendered.
  *
+ * @see paintGL()
+ * @see drawIntersections()
  * @param cen centre of circle to draw
  * @param rad radius of circle to draw
  */
@@ -573,7 +606,11 @@ void vis::drawCircle(intDraw circ) {
 }
 
 /** 
- * draws the intersections saved in the global variable coiDraw.
+ * makes calls to draw the intersections saved in the global variable 
+ * coiDraw when rendering each new frame.
+ *
+ * @see drawCircle()
+ * @see paintGL()
  */
 void vis::drawIntersections() {
 
@@ -595,8 +632,10 @@ void vis::drawIntersections() {
 /**
  * renders for picking using the colour hack. creates unique colour for 
  * each object then determines which object the user has picked depending
- * on the colour of the pixel under the mouse.
+ * on the colour of the pixel under the mouse. triggered by right click.
  * 
+ * @see paintGL()
+ * @see mouseReleaseEvent()
  * @return integer id of picked object
  */
 int vis::getPicked() {
@@ -628,8 +667,9 @@ int vis::getPicked() {
 
 /**
  * draws cube with side lengths 1 about the origin from points held in
- * cubePoints variable.
+ * cubePoints variable. 
  *  
+ * @see selectionCube()
  * @param p array of int containing each point on cube face
  */
 void vis::drawCubeFace(int *p) {
@@ -645,8 +685,11 @@ void vis::drawCubeFace(int *p) {
 }
 
 /**
- * renders a wireframe cube around currently selected picked object
+ * renders a wireframe cube around currently selected object (if any) by 
+ * drawing each face one at a time.
  *  
+ * @see paintGL()
+ * @see drawCubeFace()
  * @param id of sphere that cube should be drawn around
  */
 void vis::selectionCube(int id) {
@@ -679,7 +722,17 @@ void vis::selectionCube(int id) {
 /**
  * creates the context menu when picking occurs. available options depend
  * upon whether an object or the background is selected. handles signals 
- * depending what option is picked by the user.
+ * depending what option is picked by the user and calls corresponding 
+ * slot.
+ *
+ * @see colChangeSlot()
+ * @see transChangeSlot()
+ * @see printIntersectionSlot()
+ * @see updateDrawList()
+ * @see printAllIntersections()
+ * @see drawAllIntersections()
+ * @see createSlideDialog()
+ * @see takeScreenshot()
  */
 void vis::createContextMenu() {
 	
@@ -693,7 +746,6 @@ void vis::createContextMenu() {
 	QAction* printAllIntersections = new QAction("Print All Intersections", this);
 	QAction* drawAllIntersections = new QAction("Draw All Intersections", this);
 	QAction* slideshowMode = new QAction("Slideshow Mode", this);
-	QAction* helpHint = new QAction("Help Hint", this);
 	QAction* screenshot = new QAction("Take Screenshot", this);
 	
 	// if no particular object selected disable object specific options
@@ -712,7 +764,6 @@ void vis::createContextMenu() {
 		printAllIntersections->setEnabled(0);
 		drawAllIntersections->setEnabled(0);
 		slideshowMode->setEnabled(0);
-		helpHint->setEnabled(0);	
 	}
 	
 	// populate menu with actions and seperators
@@ -727,8 +778,6 @@ void vis::createContextMenu() {
 	menu.addSeparator();
 	menu.addAction(slideshowMode);
 	menu.addSeparator();
-	menu.addAction(helpHint);
-	menu.addSeparator();
 	menu.addAction(screenshot);
 	
 	// create QSignalMapper type to pass parameters to for print intersections slot
@@ -742,7 +791,6 @@ void vis::createContextMenu() {
 	connect(printAllIntersections, SIGNAL(triggered()), this, SLOT(printAllIntersections()));
 	connect(drawAllIntersections, SIGNAL(triggered()), this, SLOT(drawAllIntersections()));
 	connect(slideshowMode, SIGNAL(triggered()), this, SLOT(createSlideDialog()));
-	connect(helpHint, SIGNAL(triggered()), this, SLOT(helpHint()));
 	connect(screenshot, SIGNAL(triggered()), this, SLOT(takeScreenshot()));
 	
 	// link the current pick id with the slot via mapper
@@ -758,9 +806,12 @@ void vis::createContextMenu() {
 /**
  * scroll mode command to move selection to next object. either moves one
  * index value forwards if wheel scrolled up or one id value backwards if
- * wheel scrolled down. changes transparency values accordingly.
+ * wheel scrolled down. also scrolls if "+" or "-" key pressed. changes 
+ * transparency values accordingly.
  *  
- * @param delta the rotation amount of the scroll wheel, positive for increment
+ * @see wheelEvent()
+ * @see keyPressEvent()
+ * @param delta the rotation amount of the scroll wheel
  */
 void vis::scroll(float delta) {
 
@@ -800,8 +851,9 @@ void vis::scroll(float delta) {
 
 /**
  * function to print specific intersection between two objects and add interstion
- * to draw list. used in slideshow pair mode.
+ * to draw list. used when a new slide is created in slideshow pair mode.
  *  
+ * @see createSlide()
  * @param a index of first sphere
  * @param b index of second sphere
  */
@@ -854,8 +906,12 @@ void vis::handleIntersection(int a, int b) {
 }
 
 /** 
- *  resets all variables back to their original state when slideshow mode
- *  is finished and resets flags.
+ * resets all variables back to their original state when slideshow mode
+ * is finished and resets flags. this is either triggered by the timer on the 
+ * last slide ending or cycling through all slides by keypress.
+ *
+ * @see setSlideshow()
+ * @see keyPressEvent()
  */
 void vis::stopSlideshow() {
 	slideshowFlag = 0; // reset flag
@@ -866,10 +922,13 @@ void vis::stopSlideshow() {
 }
 
 /**
-   Function that makes to program wait for specified number of seconds
-	   
-   @param s number of seconds to wait
-*/
+ * function that makes the program wait for specified number of seconds through
+ * use of clock_t variables and the get clock ticks function clock().
+ * required for time transition slideshow mode.
+ *  
+ * @see setSlideshow()
+ * @param s number of seconds to wait
+ */
 void vis::waitFunc(int s) {
 
 	clock_t start, end; // two clock vars for timing
@@ -881,10 +940,11 @@ void vis::waitFunc(int s) {
 }
 
 /**
- * function that makes the program wait for specified number of seconds through
- * use of clock_t variables and the get clock ticks function clock()
- *  
- * @param s number of seconds to wait
+ * sets up objects so the next slide may be rendered in slideshow mode.
+ * sets transparencies and draws intersections.
+ *
+ * @see setSlideshow()
+ * @see stopSlideshow()
  */
 void vis::createSlide() {
 	
@@ -914,8 +974,11 @@ void vis::createSlide() {
 
 /**
  * moves specified value from current position in vector to the front of the
- * specified vector.
+ * specified vector. required when rendering a new frame in either slideshow or 
+ * scroll mode, as the object we wish to highlight should be bought to front
+ * of render queue.
  *
+ * @see paintGL()
  * @param val specified value to be swapped to front
  * @param vec vector for swap takes place in
  * @return reordered vector
@@ -934,7 +997,10 @@ vector<int> vis::bringToFront(int val, vector<int> vec) {
 
 /**
  * calculates the number of lines required and prints the contents of the screenText 
- * vector to the bottom left of the opengl widget
+ * vector to the bottom left of the opengl widget. required each time a new
+ * frame is drawn
+ *
+ * @see paintGL()
  */
 void vis::createText() {
 
@@ -956,8 +1022,12 @@ void vis::createText() {
 
 /**
  * updates the screenText vector by replacing current contents with those
- * of the the object with index specified
+ * of the the object with index specified. does this when an object is picked or 
+ * scrolled to.
  *
+ * @see getPicked()
+ * @see paintGL()
+ * @see scroll()
  * @param id index of object that screenText vector to be updated for
  */
 void vis::screenTextSelect(int id) {
@@ -978,8 +1048,11 @@ void vis::screenTextSelect(int id) {
 
 /**
  * updates the screenText vector by adding brief details of specified 
- * intersection to the vector as a string
+ * intersection to the vector as a string. required in pair slideshow mode
+ * and when intersections are printed.
  *
+ * @see createSlide()
+ * @see printIntersections()
  * @param inter information about the intersection whos details we wish to add to screenText
  */
 void vis::screenTextIntersect(intDraw inter) {
@@ -1003,7 +1076,11 @@ void vis::screenTextIntersect(intDraw inter) {
 /**
  * prints intersections for currently selected object to standard output.
  * called from context menu. also adds intersections details to screenText vector.
- *  
+ * called when print options on context menu selected  
+ *
+ * @see createContextMenu()
+ * @see printIntersectionSlot()
+ * @see printAllIntersections()
  * @param id id of currently selected object
  */
 void vis::printIntersections(int id) {
@@ -1054,6 +1131,9 @@ void vis::printIntersections(int id) {
 
 /**
  * slot to set colour of selected object, called from colour dialog.
+ *
+ * @see colChangeSlot()
+ * @param colID index of object whos colour shall be changed
  */
 void vis::setColSlot(int colID) {
 	changeColour(pickID, colour.at(colID));
@@ -1062,9 +1142,13 @@ void vis::setColSlot(int colID) {
 
 /**
  * slot to control creation of the colour change dialog, spawned from
- * context menu. colour updates as the value of the the combobox changes,
- * the current colour is saved if user presses the confirm button, else the colour
- * returns to its original value if the "x" button or esc key is pressed
+ * context menu. colour updates as the value of the the combobox changes via
+ * setColSlot function, the current colour is saved if user presses the 
+ * confirm button, else the colour returns to its original value if the 
+ * "x" button or esc key is pressed.
+ *
+ * @see createContextMenu()
+ * @see setColSlot()
  */
 void vis::colChangeSlot() {
 	
@@ -1135,7 +1219,10 @@ void vis::colChangeSlot() {
 
 /**
  * slot to handle a change in the translider value, called from transparency
- * dialog.
+ * dialog. changes the transparency of the object specified.
+ *
+ * @see transChangeSlot()
+ * @param val index of object whos transparency shall be changed
  */
 void vis::transSliderChanged(int val) {
 	objColour.at(pickID).A = (double)val/100.0; // set new transparency
@@ -1146,7 +1233,10 @@ void vis::transSliderChanged(int val) {
  * slot to control creation of the transparency change dialog, spawned from
  * context menu. transparency of object changes as the slider does, the 
  * transparency value is reset if the dialog is exited by esc key or "x" 
- * button. User confirms transparency change by pressing confirm button.
+ * button. user confirms transparency change by pressing confirm button.
+ *
+ * @see createContextMenu()
+ * @see transSliderChanged()
  */
 void vis::transChangeSlot() {
 
@@ -1200,8 +1290,10 @@ void vis::transChangeSlot() {
 
 /**
  * slot that calls printIntersections function for selected object and redraws 
- * to screen
- *  
+ * to screen. this slot is triggered by selection from the context menu.
+ *
+ * @see createContextMenu()
+ * @see printIntersections()
  * @param id id of currently selected object
  */
 void vis::printIntersectionSlot(int id) {
@@ -1213,6 +1305,8 @@ void vis::printIntersectionSlot(int id) {
  * slot that updates coiDraw vector depending on currently selected object.
  * if object's intersections already drawn then it removes them by clearing them 
  * from the coi vector, else it adds them to the vector. called from context menu.
+ *
+ * @see createContextMenu()
  */
 void vis::updateDrawList() {
 	
@@ -1257,8 +1351,11 @@ void vis::updateDrawList() {
 }
 
 /**
- * slot that prints intersections for all objects to standard output. called
- * from context menu.
+ * slot that prints intersections for all objects to standard output. uses 
+ * the printIntersections function to do so. called from context menu. 
+ *
+ * @see printIntersections()
+ * @see createContextMenu()
  */
 void vis::printAllIntersections() {
 
@@ -1273,7 +1370,9 @@ void vis::printAllIntersections() {
 
 /**
  * slot that updates coiDraw vector to include all objects. however if all 
- * objects are currently drawn, clears coiDraw.
+ * objects are currently drawn, clears coiDraw. called from context menu
+ *
+ * @see createContextMenu()
  */
 void vis::drawAllIntersections() {
 	
@@ -1291,7 +1390,10 @@ void vis::drawAllIntersections() {
  * employs a grid layout within a box layout containing 3 QLabels and 3 comboboxes.
  * the user confirms their parameters and starts slideshow mode by pressing the confirm
  * button, which triggers the setSlideshow slot to initialize variables for
- * slideshow mode.
+ * slideshow mode. called from context menu.
+ *
+ * @see createContextMenu()
+ * @see setSlideshow()
  */
 void vis::createSlideDialog() {
 
@@ -1366,6 +1468,9 @@ void vis::createSlideDialog() {
  * required depending on user specified parameters. creates lists of which
  * objects need to be highlighted for each slide and carries out entire 
  * slideshow if time transition selected.
+ *
+ * @see createSlideDialog()
+ * @see createSlide()
  */
 void vis::setSlideshow() {
 
@@ -1432,6 +1537,7 @@ void vis::setSlideshow() {
  * slot that handles  value changes in the key combo box within the slideshow
  * mode dialog.
  *
+ * @see createSlideDialog()
  * @param key newly selected string value of key
  */
 void vis::keyChange(QString key) {
@@ -1443,6 +1549,7 @@ void vis::keyChange(QString key) {
  * slot that handles value changes in the transition combo box within the slideshow
  * mode dialog.
  *
+ * @see createSlideDialog()
  * @param trans newly selected transition parameter
  */
 void vis::transChange(QString trans) {
@@ -1455,6 +1562,7 @@ void vis::transChange(QString trans) {
  * slot that handles value changes in the group combo box within the slideshow
  * mode dialog.
  *
+ * @see createSlideDialog()
  * @param group newly selected grouping parameter
  */
 void vis::groupChange(QString group) {
@@ -1464,50 +1572,11 @@ void vis::groupChange(QString group) {
 }
 
 /**
- * slot that prints help text from help.txt file to console and creates a dialog
- * to notify the user that it has done this.
- */
-void vis::helpHint() {
-	
-	ifstream helpFile("help.txt"); // create input filestream
-	string line; // will hold each line of helpfile while they are read in
-	
-	while(getline(helpFile, line)) // print each line of file to standard output
-		cout << line << endl;
-	
-	helpFile.close(); // close file
-	
-	// create a dialog to state that the data has been printed to output
-	QDialog *helpDialog = new QDialog(0);	
-	helpDialog->setWindowTitle("Help Hint");
-	
-	// create a dialog layout
-	QVBoxLayout *helpLayout = new QVBoxLayout; // vertical box layout
-	helpLayout->setSizeConstraint(QLayout::SetFixedSize); // fix dialog size
-	
-	// create QLabel to display text and a button to dismiss the dialog
-	QLabel *helpText = new QLabel("Help information has been printed to the console!");
-	QPushButton *okButton = new QPushButton;
-	okButton->setText("OK");
-	okButton->setMaximumWidth(50); // format button width
-	
-	// add widgets to layout and align them
-	helpLayout->addWidget(helpText);
-	helpLayout->addWidget(okButton);
-	helpLayout->setAlignment(okButton, Qt::AlignHCenter);
-	
-	// set layout of dialog
-	helpDialog->setLayout(helpLayout);
-	
-	// connect OK button to slot that dismisses dialog
-	connect(okButton, SIGNAL(pressed()), helpDialog, SLOT(accept()));
-	
-	helpDialog->show(); // display dialog
-}
-
-/**
  * slot that takes a screenshot of the current frame and saves it as a png
- * in the screenshots folder. the date and time are used as a filename
+ * in the screenshots folder. the current date and time are used as a filename.
+ * called from context menu.
+ *
+ * @see createContextMenu()
  */
 void vis::takeScreenshot() {
 
@@ -1754,6 +1823,7 @@ void vis::paintGL() {
  * interaction handling for the mouses's scroll wheel, used for 
  * camera zoom and scroll mode.
  *  
+ * @see scroll()
  * @param event information about the mouse button click
  */
 void vis::wheelEvent(QWheelEvent *event) {
@@ -1785,7 +1855,10 @@ void vis::wheelEvent(QWheelEvent *event) {
  * interaction handling for when a button on the keyboard is pressed,  
  * used for camera zooming and scroll mode, moving between slides in slideshow
  * mode, and exiting scroll and slideshow mode.
- *  
+ *
+ * @see scroll()
+ * @see createSlide()
+ * @see stopSlideshow()
  * @param event information about the key pressed
  */
 void vis::keyPressEvent(QKeyEvent *event) {
@@ -1838,6 +1911,7 @@ void vis::keyPressEvent(QKeyEvent *event) {
 		} else { // case of no mode, deselects the object and clears screen text
 			pickID=-1;
 			screenText.clear();
+			updateGL(); // draw new frame 
 		}
 	}
 		
@@ -1903,9 +1977,11 @@ void vis::mouseMoveEvent(QMouseEvent *event) {
 }
 
 /**
- *  interaction handling for when mouse button released, used for picking
+ * interaction handling for when mouse button released, used for picking
  *  
- *  @param event information about the mouse button released
+ * @see getPicked()
+ * @see createContextMenu()
+ * @param event information about the mouse button released
  */
 void vis::mouseReleaseEvent(QMouseEvent *event) {
 

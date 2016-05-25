@@ -190,6 +190,16 @@ class vis: public QGLWidget {
 	void drawSphere(Point centre, double radius);
 	
 	/**
+	 * sets the flag to indicate whether a file has been loaded to visualise or
+	 * not. This determines what options appear on the context menu. Called 
+	 * at run time depending on whether a command line arg specified and called
+	 * again when a new file is loaded.
+	 *
+	 * @param file integer value for flag to be given
+	 */
+	void setFileLoaded(int file);
+	
+	/**
 	 * writes centre, radius, key and generation information from file to 
 	 * vectors. file specified as a command line argument. Sphere centre coordinates
 	 * stored in objCentre vector, radius data in objRadius, and key and generation
@@ -477,7 +487,21 @@ class vis: public QGLWidget {
 	 */
 	void printIntersections(int id);
 	
+	/**
+	 * clears all vectors and resets all flags, sets up program to load a new 
+	 * arrangement. called from file loader when new file chosen
+	 *
+	 * @see fileLoader()
+	 */
+	void resetVis();
+	 
+	
 	private:
+	
+	/**
+	 * flag to determine whether a file has been loaded or not
+	 */
+	int fileLoaded;
 	
 	/**
 	 * define number of points in one circle of a sphere
@@ -760,6 +784,15 @@ class vis: public QGLWidget {
 	 * @see createContextMenu()
 	 */
 	void takeScreenshot();
+	
+	/**
+	 * slot that creates a file loader to load a new arrangement to the 
+	 * screen. file loader allows navigation through files to select a text
+	 * file.
+	 *
+	 * @see createContextMenu()
+	 */
+	void fileLoader();
 	 
 	
 	protected:

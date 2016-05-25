@@ -21,6 +21,7 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QGridLayout>
+#include <QFileDialog>
 #include <cmath> // c++ includes
 #include <vector>
 #include <iostream>
@@ -161,6 +162,18 @@ void vis::drawSphere(Point centre, double radius) {
 }
 
 /**
+ * sets the flag to indicate whether a file has been loaded to visualise or
+ * not. This determines what options appear on the context menu. Called 
+ * at run time depending on whether a command line arg specified and called
+ * again when a new file is loaded.
+ *
+ * @param file integer value for flag to be given
+ */
+void vis::setFileLoaded(int file) {
+	fileLoaded = file;
+}
+
+/**
  * writes centre, radius, key and generation information from file to 
  * vectors. file specified as a command line argument. Sphere centre coordinates
  * stored in objCentre vector, radius data in objRadius, and key and generation
@@ -220,6 +233,7 @@ int vis::setData(char* objData) {
 		return 1; // exits qt program
 	}
 	
+	setFileLoaded(1); // set flag to indicate file loaded
 	return 0; // succesful return
 }	
 
@@ -733,6 +747,7 @@ void vis::selectionCube(int id) {
  * @see drawAllIntersections()
  * @see createSlideDialog()
  * @see takeScreenshot()
+ * @see fileLoader()
  */
 void vis::createContextMenu() {
 	
@@ -747,6 +762,7 @@ void vis::createContextMenu() {
 	QAction* drawAllIntersections = new QAction("Draw All Intersections", this);
 	QAction* slideshowMode = new QAction("Slideshow Mode", this);
 	QAction* screenshot = new QAction("Take Screenshot", this);
+	QAction* loadNewFile = new QAction("Load New File", this);
 	
 	// if no particular object selected disable object specific options
 	if(pickID == -1) { 
@@ -764,6 +780,18 @@ void vis::createContextMenu() {
 		printAllIntersections->setEnabled(0);
 		drawAllIntersections->setEnabled(0);
 		slideshowMode->setEnabled(0);
+		loadNewFile->setEnabled(0);
+	}
+	
+	if(fileLoaded == 0) { // case where no file loaded
+		changeColour->setEnabled(0);
+		changeTransparency->setEnabled(0);
+		printIntersections->setEnabled(0);
+		drawIntersections->setEnabled(0);	
+		printAllIntersections->setEnabled(0);
+		drawAllIntersections->setEnabled(0);
+		slideshowMode->setEnabled(0);
+		screenshot->setEnabled(0);
 	}
 	
 	// populate menu with actions and seperators
@@ -779,6 +807,8 @@ void vis::createContextMenu() {
 	menu.addAction(slideshowMode);
 	menu.addSeparator();
 	menu.addAction(screenshot);
+	menu.addSeparator();
+	menu.addAction(loadNewFile);
 	
 	// create QSignalMapper type to pass parameters to for print intersections slot
 	QSignalMapper *pickMapper = new QSignalMapper(this);
@@ -792,6 +822,7 @@ void vis::createContextMenu() {
 	connect(drawAllIntersections, SIGNAL(triggered()), this, SLOT(drawAllIntersections()));
 	connect(slideshowMode, SIGNAL(triggered()), this, SLOT(createSlideDialog()));
 	connect(screenshot, SIGNAL(triggered()), this, SLOT(takeScreenshot()));
+	connect(loadNewFile, SIGNAL(triggered()), this, SLOT(fileLoader()));
 	
 	// link the current pick id with the slot via mapper
 	pickMapper -> setMapping(printIntersections, pickID);
@@ -1127,6 +1158,26 @@ void vis::printIntersections(int id) {
 	cout << sInter.str(); // print out the intersection information
 	
 	return;
+}
+
+/**
+ * clears vectors not reset by initialize function, sets up program to load a new 
+ * arrangement. called from file loader when new file chosen
+ *
+ * @see fileLoader()
+ */
+void vis::resetVis() {
+
+	// clear vectors
+	objCentre.clear(); 
+	objRadius.clear();
+	objGenKey.clear();
+	objColour.clear();
+	coiBegin.clear();
+	coi.clear();
+	coiDraw.clear();
+	colour.clear();
+
 }
 
 /**
@@ -1579,7 +1630,7 @@ void vis::groupChange(QString group) {
  * @see createContextMenu()
  */
 void vis::takeScreenshot() {
-
+	
 	// grab the currently rendered frame and save as QImage
 	QImage frame = grabFrameBuffer(true);
 	
@@ -1619,6 +1670,41 @@ void vis::takeScreenshot() {
 	
 	screenDialog->show(); // display dialog
 }
+
+/**
+ * slot that creates a file loader to load a new arrangement to the 
+ * screen. file loader allows navigation through files to select a text
+ * file.
+ *
+ * @see createContextMenu()
+ */
+void vis::fileLoader() {
+	
+	QString QStrFileName; // QString to hold desired file name to be opened
+	
+	// use Qt QFileDialog to get file user wishes to load
+	QStrFileName = QFileDialog::getOpenFileName(this, tr("Open New Arrangement"),
+		   "", tr("Text files (*.txt)"));
+	
+	if(QStrFileName != NULL) { // case when something is selected and the dialog is not cancelled
+	
+		// convert from QString to char*
+		char* fileName; // char* that will be used to set new data
+		QByteArray array = QStrFileName.toLocal8Bit(); // intemediary conversion to byte array
+		fileName = array.data(); // convert to char*
+	
+		// reset necessary vectors
+		resetVis();
+	
+		// load data from new file
+		if(setData(fileName) == 1) // if error
+			return;
+		else // normal case
+			initializeGL(); // reinitialize program
+	}
+	
+	return;
+}	
 
 /**
  * protected function, required to define a QGLWidget. initialises environment 

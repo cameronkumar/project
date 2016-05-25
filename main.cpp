@@ -23,29 +23,27 @@ using namespace std;
 int main(int argc, char *argv[]) {
 	
 	QApplication app(argc, argv); // creating the application
+	vis *visualisation = new vis(NULL); // create vis instance
 	
-	// want to read sphere data from command line argument, handled here
-	if(argc == 2) { // create vis if 1 file specified
-	
-		vis *visualisation = new vis(NULL); // create vis instance
+	// want to read sphere data from command line argument if present, handled here
+	if(argc > 1) { // case where arguments specified
 		
 		// load data from file into visualisation
-		if((visualisation -> setData(argv[1])) == 1) // error case
+		if((visualisation -> setData(argv[1])) == 1) // if error then exit application
 			return 1;
-		else {
-			// display the visualisation in app
-			visualisation -> show();
-			visualisation -> resize(1024,512);
+		
+	} else { // no command line argument specified case
 	
-			// run the application
-			return app.exec();
-		}
-	} 
+		cout << "specify a file from the menu!\n"; // output to user
+		visualisation -> setFileLoaded(0); // set flag to indicate no file loaded
+		// load a file with an invisible object so the program can load without crash
+		visualisation -> setData((char*)"blank.txt"); 
+	}
 	
-	else {
-		cout << "ERROR: no geometric data file specified!\n";
-		return 1;
-	}	
-	
-	return 0;
+	// display the visualisation in app
+	visualisation -> show();
+	visualisation -> resize(1024,512);
+	// run the application
+	return app.exec();	
+
 }

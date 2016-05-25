@@ -1,5 +1,5 @@
 
-Sphere data needs to be passed to the program as a text file by command line argument, with each line of the file containing all information for one sphere. The information on each line should be seperated by a single space and presented as follows:
+Sphere data needs to be passed to the program as a text (.txt) file by command line argument, with each line of the file containing all information for one sphere. The information on each line should be seperated by a single space and presented as follows:
 
 x y z radius generation key
 

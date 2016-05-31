@@ -7,9 +7,6 @@ The directory also contains an installation document, a user manual, and the
 html format documentation for the class. There is also an example input file 
 for the visualisation, arrangement.txt.
 
-NOTE: Please do not remove the file blank.txt, this is required for the program to
-function correctly.
-
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Directories:

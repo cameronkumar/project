@@ -36,8 +36,10 @@ int main(int argc, char *argv[]) {
 	
 		cout << "specify a file from the menu!\n"; // output to user
 		visualisation -> setFileLoaded(0); // set flag to indicate no file loaded
-		// load a file with an invisible object so the program can load without crash
-		visualisation -> setData((char*)"blank.txt"); 
+		/* opens the file loader to allow user to specify a file
+		   if no file specified program closes */
+		if(visualisation -> fileLoader() == 1) 
+			return 1;
 	}
 	
 	// display the visualisation in app

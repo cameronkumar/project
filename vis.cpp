@@ -1177,6 +1177,7 @@ void vis::resetVis() {
 	coi.clear();
 	coiDraw.clear();
 	colour.clear();
+	screenText.clear();
 
 }
 
@@ -1677,14 +1678,15 @@ void vis::takeScreenshot() {
  * file.
  *
  * @see createContextMenu()
+ * @return 0 if a file loaded succesfully, else 1
  */
-void vis::fileLoader() {
+int vis::fileLoader() {
 	
 	QString QStrFileName; // QString to hold desired file name to be opened
 	
 	// use Qt QFileDialog to get file user wishes to load
 	QStrFileName = QFileDialog::getOpenFileName(this, tr("Open New Arrangement"),
-		   "", tr("Text files (*.txt)"));
+		   "", tr("Text files (*.txt);;All files (*.*)"));
 	
 	if(QStrFileName != NULL) { // case when something is selected and the dialog is not cancelled
 	
@@ -1697,13 +1699,21 @@ void vis::fileLoader() {
 		resetVis();
 	
 		// load data from new file
-		if(setData(fileName) == 1) // if error
-			return;
-		else // normal case
+		if(setData(fileName) == 1) { // if error
+			cout << "ERROR: file could not be loaded!\n";
+			return 1;
+		} else {// normal case
 			initializeGL(); // reinitialize program
+			screenText.push_back("Right click for menu"); // display prompt
+			updateGL(); // redraw screen
+		}
+		
+	} else { // case where nothing specified
+		cout << "ERROR: no file specified!\n";
+		return 1;
 	}
 	
-	return;
+	return 0;
 }	
 
 /**

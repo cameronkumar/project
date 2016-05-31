@@ -791,8 +791,9 @@ class vis: public QGLWidget {
 	 * file.
 	 *
 	 * @see createContextMenu()
+	 * @return 0 if a file loaded succesfully, else 1
 	 */
-	void fileLoader();
+	int fileLoader();
 	 
 	
 	protected:
